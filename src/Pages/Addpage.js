@@ -16,6 +16,52 @@ const AddPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const getUsernameFromToken = () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return "Admin";
+
+      const base64Url = token.split(".")[1];
+      if (!base64Url) return "Admin";
+
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        window
+          .atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+
+      const decoded = JSON.parse(jsonPayload);
+
+      if (decoded.email) {
+        const namePart = decoded.email.split("@")[0];
+        return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+      }
+
+      return decoded.username || decoded.name || "Admin";
+    } catch (error) {
+      console.error("Failed to parse token payload:", error);
+      return "Admin";
+    }
+  };
+
+  const username = getUsernameFromToken();
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to log out?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("name");
+      localStorage.removeItem("user");
+      localStorage.removeItem("loginTimestamp");
+      
+      toast.success("Logged out successfully");
+      navigate("/");
+    }
+  };
+
   const { loading, addUserResponse, editUserResponse, error } =
     useSelector((state) => state.user);
 
@@ -41,7 +87,6 @@ const AddPage = () => {
       to: Yup.string().required("Required"),
       reason: Yup.string().required("Required"),
       serviceState: Yup.string().required("Required"),
-      // remarks: Yup.string().required("Required"),
     }),
 
     enableReinitialize: true,
@@ -58,7 +103,7 @@ const AddPage = () => {
   useEffect(() => {
     if (addUserResponse) {
       toast.success("Successfully Added!");
-      formik.resetForm(); // Clears all input fields
+      formik.resetForm();
       dispatch(resetUserResponse());
     } else if (editUserResponse) {
       toast.success("Successfully Updated!");
@@ -67,58 +112,76 @@ const AddPage = () => {
   }, [addUserResponse, editUserResponse, dispatch]);
 
   return (
-    <div className="main-wrapper py-5 min-vh-100">
-
+    <div className="main-wrapper py-5 min-vh-100" style={{ background: "#f8f9fa" }}>
       <div className="container">
         <div className="row justify-content-center">
-          <div className="vijay">
-            <div className="card custom-card shadow-lg border-0">
+          <div className="vijay col-lg-10">
+            <div className="card custom-card shadow-lg border-0 rounded-3">
               
-              {/* HEADER */}
-              <div className="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
+              <div className="card-header bg-white border-bottom p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <h3 className="mb-0 fw-bold text-primary">
                   {userToEdit ? "✏️ Edit PXE Details" : "➕ Add PXE Details"}
                 </h3>
-                <button
-                  className="btn btn-outline-secondary btn-sm px-4 rounded-pill"
-                  onClick={() => navigate("/")}
-                >
-                  ⬅ View List
-                </button>
+                
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-muted me-2 d-none d-sm-inline">
+                    Welcome, 👤 <strong>{username}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm px-4 rounded-pill fw-semibold"
+                    onClick={() => navigate("/")}
+                  >
+                    ⬅ View List
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm px-4 rounded-pill fw-semibold shadow-sm"
+                    onClick={handleLogout}
+                  >
+                    Logout 🚪
+                  </button>
+                </div>
               </div>
 
-              {/* FORM */}
-              <div className="card-body">
+              <div className="card-body p-4">
                 <form onSubmit={formik.handleSubmit}>
                   
-                  {/* ROW 1: SERIAL, DATE (ONLY), TRANSACTION TYPE */}
                   <div className="row g-3 mb-4">
                     <div className="col-md-4">
                       <label className="form-label fw-semibold">PXE Serial Number</label>
                       <input
                         type="text"
                         name="pxeSerialNumber"
-                        className={`form-control ${formik.touched.pxeSerialNumber && formik.errors.pxeSerialNumber ? 'is-invalid' : ''}`}
+                        className={`form-control form-control-lg ${formik.touched.pxeSerialNumber && formik.errors.pxeSerialNumber ? 'is-invalid' : ''}`}
                         placeholder="Enter Serial..."
                         onChange={formik.handleChange}
                         value={formik.values.pxeSerialNumber}
                       />
+                      {formik.touched.pxeSerialNumber && formik.errors.pxeSerialNumber && (
+                        <div className="invalid-feedback">{formik.errors.pxeSerialNumber}</div>
+                      )}
                     </div>
+                    
                     <div className="col-md-4">
                       <label className="form-label fw-semibold">Date</label>
                       <input
-                        type="date" // CHANGED: Now only Date selection
+                        type="date"
                         name="date"
-                        className={`form-control ${formik.touched.date && formik.errors.date ? 'is-invalid' : ''}`}
+                        className={`form-control form-control-lg ${formik.touched.date && formik.errors.date ? 'is-invalid' : ''}`}
                         onChange={formik.handleChange}
                         value={formik.values.date}
                       />
+                      {formik.touched.date && formik.errors.date && (
+                        <div className="invalid-feedback">{formik.errors.date}</div>
+                      )}
                     </div>
+                    
                     <div className="col-md-4">
                       <label className="form-label fw-semibold">Transaction Type</label>
                       <select
                         name="transactionType"
-                        className={`form-select ${formik.touched.transactionType && formik.errors.transactionType ? 'is-invalid' : ''}`}
+                        className={`form-select form-select-lg ${formik.touched.transactionType && formik.errors.transactionType ? 'is-invalid' : ''}`}
                         onChange={formik.handleChange}
                         value={formik.values.transactionType}
                       >
@@ -127,53 +190,65 @@ const AddPage = () => {
                         <option value="RECEIPT">RECEIPT</option>
                         <option value="OTHERS">OTHERS</option>
                       </select>
+                      {formik.touched.transactionType && formik.errors.transactionType && (
+                        <div className="invalid-feedback">{formik.errors.transactionType}</div>
+                      )}
                     </div>
                   </div>
 
-                  {/* ROW 2: FROM AND TO */}
                   <div className="row g-3 mb-4">
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">From</label>
                       <input
                         type="text"
                         name="from"
-                        className={`form-control ${formik.touched.from && formik.errors.from ? 'is-invalid' : ''}`}
+                        className={`form-control form-control-lg ${formik.touched.from && formik.errors.from ? 'is-invalid' : ''}`}
                         placeholder="Source Location"
                         onChange={formik.handleChange}
                         value={formik.values.from}
                       />
+                      {formik.touched.from && formik.errors.from && (
+                        <div className="invalid-feedback">{formik.errors.from}</div>
+                      )}
                     </div>
+                    
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">To</label>
                       <input
                         type="text"
                         name="to"
-                        className={`form-control ${formik.touched.to && formik.errors.to ? 'is-invalid' : ''}`}
+                        className={`form-control form-control-lg ${formik.touched.to && formik.errors.to ? 'is-invalid' : ''}`}
                         placeholder="Destination Location"
                         onChange={formik.handleChange}
                         value={formik.values.to}
                       />
+                      {formik.touched.to && formik.errors.to && (
+                        <div className="invalid-feedback">{formik.errors.to}</div>
+                      )}
                     </div>
                   </div>
 
-                  {/* ROW 3: REASON AND SERVICEABILITY */}
                   <div className="row g-3 mb-4">
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Reason</label>
                       <input
                         type="text"
                         name="reason"
-                        className={`form-control ${formik.touched.reason && formik.errors.reason ? 'is-invalid' : ''}`}
+                        className={`form-control form-control-lg ${formik.touched.reason && formik.errors.reason ? 'is-invalid' : ''}`}
                         placeholder="Reason for transaction"
                         onChange={formik.handleChange}
                         value={formik.values.reason}
                       />
+                      {formik.touched.reason && formik.errors.reason && (
+                        <div className="invalid-feedback">{formik.errors.reason}</div>
+                      )}
                     </div>
+                    
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Serviceability State</label>
                       <select
                         name="serviceState"
-                        className={`form-select ${formik.touched.serviceState && formik.errors.serviceState ? 'is-invalid' : ''}`}
+                        className={`form-select form-select-lg ${formik.touched.serviceState && formik.errors.serviceState ? 'is-invalid' : ''}`}
                         onChange={formik.handleChange}
                         value={formik.values.serviceState}
                       >
@@ -181,44 +256,47 @@ const AddPage = () => {
                         <option value="SERVICEABLE">SERVICEABLE</option>
                         <option value="UN-SERVICEABLE">UN-SERVICEABLE</option>
                       </select>
+                      {formik.touched.serviceState && formik.errors.serviceState && (
+                        <div className="invalid-feedback">{formik.errors.serviceState}</div>
+                      )}
                     </div>
                   </div>
 
-                  {/* ROW 4: REMARKS */}
                   <div className="mb-5">
                     <label className="form-label fw-semibold">Remarks</label>
                     <textarea
                       name="remarks"
                       className={`form-control ${formik.touched.remarks && formik.errors.remarks ? 'is-invalid' : ''}`}
-                      rows="2"
+                      rows="3"
                       placeholder="Add any additional notes..."
                       onChange={formik.handleChange}
                       value={formik.values.remarks}
                     />
                   </div>
 
-                  {/* BUTTONS */}
+                  {/* Submission Action Blocks */}
                   <div className="row g-3">
                     <div className="col-md-6">
-                      <button type="submit" className="btn btn-primary w-100 py-3 rounded-3 btn-hover shadow-sm">
-                        {loading ? (
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                        ) : null}
+                      <button 
+                        type="submit" 
+                        className="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm"
+                        disabled={loading}
+                      >
+                        {loading && <span className="spinner-border spinner-border-sm me-2"></span>}
                         {userToEdit ? "Update Details" : "Save Details"}
                       </button>
                     </div>
                     <div className="col-md-6">
                       <button
                         type="button"
-                        className="btn btn-light w-100 py-3 rounded-3 btn-hover border shadow-sm"
-                        onClick={() => formik.resetForm()} // Clears all inputs manually
+                        className="btn btn-light w-100 py-3 rounded-3 fw-semibold border shadow-sm"
+                        onClick={() => formik.resetForm()}
                       >
                         Cancel
                       </button>
                     </div>
                   </div>
 
-                  {/* ERROR DISPLAY */}
                   {error && (
                     <div className="alert alert-danger mt-4 text-center border-0 shadow-sm">
                       {typeof error === "object" ? error.message : JSON.stringify(error)}
@@ -226,6 +304,7 @@ const AddPage = () => {
                   )}
                 </form>
               </div>
+
             </div>
           </div>
         </div>

@@ -1,15 +1,17 @@
-import './App.css';
-import React, { useEffect } from 'react';
-import { Provider, useDispatch, useSelector } from 'react-redux';
-import store from './Redux/store';
-import AddPage from './Pages/Addpage';
-import ViewPage from './Pages/Viewpage';
-import LoginPage from './Pages/LoginPage';
-import ProtectedRoute from './Pages/ProtectedRoute';
-import { Toaster } from 'react-hot-toast';
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import "./App.css";
+import React, { useEffect } from "react";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import store from "./Redux/store";
+import AddPage from "./Pages/Addpage";
+import ViewPage from "./Pages/Viewpage";
+import LoginPage from "./Pages/LoginPage";
+import ProtectedRoute from "./Pages/ProtectedRoute";
+import { Toaster } from "react-hot-toast";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 
-// Separate component to handle the timer logic
+import "react-toastify/dist/ReactToastify.css";
+
 const AppContent = () => {
   const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -18,10 +20,8 @@ const AppContent = () => {
     let logoutTimer;
     if (isAuthenticated) {
       const tenMinutes = 10 * 60 * 1000;
-      
-      // Set timer to logout after 10 minutes
       logoutTimer = setTimeout(() => {
-        dispatch({ type: 'LOGOUT' });
+        dispatch({ type: "LOGOUT" });
         alert("Session expired after 10 minutes. Please login again.");
       }, tenMinutes);
     }
@@ -33,18 +33,24 @@ const AppContent = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <ViewPage />
-            </ProtectedRoute>
-          } />
 
-          <Route path="/add" element={
-            <ProtectedRoute>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+              <ViewPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/add"
+            element={
+              <ProtectedRoute>
               <AddPage />
-            </ProtectedRoute>
-          } />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
@@ -63,3 +69,4 @@ function App() {
 }
 
 export default App;
+

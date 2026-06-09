@@ -2,63 +2,134 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import "./Login.css"; 
+import toast, { Toaster } from "react-hot-toast";
+import "./Login.css";
 
 const LoginPage = () => {
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    role: "Admin",
+  });
+
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+  });
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const handleLogin = async () => {
+  const validateForm = () => {
+    let valid = true;
+    let newErrors = { email: "", password: "" };
+
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+    if (!form.email) {
+      newErrors.email = "Email Address is required";
+      valid = false;
+    } else if (!emailRegex.test(form.email)) {
+      newErrors.email = "Email must be lowercase and contain @ and .";
+      valid = false;
+    }
+
+    const specialCharRegex = /[*@!#%&()^~{}]+/;
+    if (!form.password) {
+      newErrors.password = "Password is required";
+      valid = false;
+    } else if (!specialCharRegex.test(form.password)) {
+      newErrors.password = "Password must contain one special character";
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
     try {
-      const res = await axios.post("http://localhost:5000/auth/login", form);
+      const res = await axios.post("http://127.0.0.1:5000/auth/login", form);
       const token = res.data.access_token;
 
       if (token) {
-        const currentTime = new Date().getTime(); // Get current time in ms
-        
-        // 1. Save Token and Timestamp to LocalStorage
         localStorage.setItem("token", token);
-        localStorage.setItem("loginTimestamp", currentTime.toString());
+        localStorage.setItem("loginTimestamp", new Date().getTime().toString());
 
-        // 2. Update Redux
-        dispatch({ type: "LOGIN_SUCCESS", payload: token });
-
-        // 3. Move to Home
-        navigate("/");
+        dispatch({
+          type: "LOGIN_SUCCESS",
+          payload: token,
+        });
+        toast.success("Login Successful!");
+        navigate("/dashboard");
       } else {
-        alert("Token not received from server");
+        toast.error("Token not received");
       }
     } catch (err) {
+      console.error(err);
       if (err.response) {
-        alert(err.response.data.message || "Login Failed");
+        toast.error(err.response.data.message || "Login Failed");
       } else {
-        alert("Server not reachable");
+        toast.error("Server not reachable");
       }
     }
   };
 
   return (
     <div className="login-container">
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div className="login-card">
-        <h2 className="login-title">Login Here</h2>
-        <label className="login-label">Username</label>
-        <input
-          type="text"
-          className="login-input"
-          placeholder="Username"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
-        />
-        <label className="login-label">Password</label>
-        <input
-          type="password"
-          className="login-input"
-          placeholder="Password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
-        <button className="login-btn" onClick={handleLogin}>Log In</button>
+        <h2 className="login-title">LOGIN TO YOUR ACCOUNT</h2>
+
+        <form onSubmit={handleLogin} noValidate>
+          <div className="form-group">
+            <label className="login-label">Email Address</label>
+            <div
+              className={`input-wrapper ${errors.email ? "input-error" : ""}`}
+            >
+              <input
+                type="email"
+                className="login-input"
+                placeholder="Enter Email"
+                value={form.email}
+                onChange={(e) => {
+                  setForm({ ...form, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: "" });
+                }}
+              />
+              {errors.email && <span className="error-icon">!</span>}
+            </div>
+            {errors.email && <p className="error-text">{errors.email}</p>}
+          </div>
+
+          <div className="form-group">
+            <label className="login-label">Password</label>
+            <div
+              className={`input-wrapper ${errors.password ? "input-error" : ""}`}
+            >
+              <input
+                type="password"
+                className="login-input"
+                placeholder="Enter Password"
+                value={form.password}
+                onChange={(e) => {
+                  setForm({ ...form, password: e.target.value });
+                  if (errors.password) setErrors({ ...errors, password: "" });
+                }}
+              />
+              {errors.password && <span className="error-icon">!</span>}
+            </div>
+            {errors.password && <p className="error-text">{errors.password}</p>}
+          </div>
+
+          <button type="submit" className="login-btn">
+            Login
+          </button>
+        </form>
       </div>
     </div>
   );

@@ -1,116 +1,108 @@
-/* Full page background */
+/* Base container centering configuration */
 .login-container {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: #020617;
-  position: relative;
-  overflow: hidden;
+  justify-content: center;
+  background: radial-gradient(circle at center, #241e45 0%, #151226 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
 }
 
-/* Background circles */
-.login-container::before,
-.login-container::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-}
-
-.login-container::before {
-  width: 300px;
-  height: 300px;
-  background: #3b82f6;
-  top: 50px;
-  left: 200px;
-}
-
-.login-container::after {
-  width: 300px;
-  height: 300px;
-  background: #f97316;
-  bottom: 50px;
-  right: 200px;
-}
-
-/* Glass card */
+/* Card layout sizing structure */
 .login-card {
-  width: 350px;
-  padding: 30px;
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(15px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  color: white;
-  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  background: #1f1d2c;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Title */
 .login-title {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 28px;
-  font-weight: bold;
+  color: #4385f4;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  letter-spacing: 0.5px;
 }
 
-/* Labels */
+.form-group {
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
 .login-label {
-  margin-top: 15px;
-  font-size: 14px;
+  color: #8a8894;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
 }
 
-/* Inputs */
+/* Perfect alignment element wrapper */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
 .login-input {
   width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  border-radius: 6px;
+  padding: 14px 16px;
+  font-size: 14px;
   border: none;
+  background: transparent;
+  color: #1f1d2c;
   outline: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
 }
 
-/* Button */
+/* Error UI Alignment configurations */
+.input-wrapper.input-error {
+  border-color: #ff4d4f;
+  background: #fff1f0;
+}
+
+.error-icon {
+  position: absolute;
+  right: 14px;
+  color: #ff4d4f;
+  font-weight: bold;
+  font-size: 16px;
+  user-select: none;
+}
+
+.error-text {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin: 6px 0 0 0;
+  text-align: left;
+  font-weight: 500;
+}
+
+/* Form CTA Action Button */
 .login-btn {
   width: 100%;
-  margin-top: 20px;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 14px;
+  background: #38bdf8;
+  color: #ffffff;
   border: none;
-  background: white;
-  color: black;
-  font-weight: bold;
+  border-radius: 25px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: 0.3s;
+  margin-top: 10px;
+  transition: background 0.2s ease;
 }
 
 .login-btn:hover {
-  background: #ddd;
-}
-
-/* Social buttons */
-.social-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
-}
-
-.social-btn {
-  width: 48%;
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  color: white;
-  font-size: 14px;
-}
-
-.google {
-  background: #6b7280;
-}
-
-.facebook {
-  background: #f97316;
+  background: #0ea5e9;
 }
