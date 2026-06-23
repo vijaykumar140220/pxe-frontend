@@ -10,11 +10,14 @@ import {
 import toast from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./Addpage.css";
+import { useAuth } from "../Context/AuthContext";
 
 const AddPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser, logout } = useAuth();
 
   const getUsernameFromToken = () => {
     try {
@@ -30,7 +33,7 @@ const AddPage = () => {
           .atob(base64)
           .split("")
           .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
+          .join(""),
       );
 
       const decoded = JSON.parse(jsonPayload);
@@ -47,7 +50,7 @@ const AddPage = () => {
     }
   };
 
-  const username = getUsernameFromToken();
+  const username = currentUser?.username || getUsernameFromToken();
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to log out?")) {
@@ -56,14 +59,16 @@ const AddPage = () => {
       localStorage.removeItem("name");
       localStorage.removeItem("user");
       localStorage.removeItem("loginTimestamp");
-      
+      logout();
+
       toast.success("Logged out successfully");
       navigate("/");
     }
   };
 
-  const { loading, addUserResponse, editUserResponse, error } =
-    useSelector((state) => state.user);
+  const { loading, addUserResponse, editUserResponse, error } = useSelector(
+    (state) => state.user,
+  );
 
   const userToEdit = location.state?.userToEdit || null;
 
@@ -112,200 +117,239 @@ const AddPage = () => {
   }, [addUserResponse, editUserResponse, dispatch]);
 
   return (
-    <div className="main-wrapper py-5 min-vh-100" style={{ background: "#f8f9fa" }}>
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="vijay col-lg-10">
-            <div className="card custom-card shadow-lg border-0 rounded-3">
-              
-              <div className="card-header bg-white border-bottom p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <h3 className="mb-0 fw-bold text-primary">
-                  {userToEdit ? "✏️ Edit PXE Details" : "➕ Add PXE Details"}
-                </h3>
-                
-                <div className="d-flex align-items-center gap-2">
-                  <span className="text-muted me-2 d-none d-sm-inline">
-                    Welcome, 👤 <strong>{username}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm px-4 rounded-pill fw-semibold"
-                    onClick={() => navigate("/")}
+    <div className="enterprise-page add-page">
+      <div className="enterprise-container add-page__container">
+        <div className="page-toolbar">
+          <div>
+            <p className="page-kicker">Inventory Record</p>
+            <h2 className="page-title">
+              {userToEdit ? "Edit PXE Details" : "Add PXE Details"}
+            </h2>
+            <p className="page-subtitle">
+              Capture movement, location, and serviceability details for each PXE box.
+            </p>
+          </div>
+
+          <div className="toolbar-actions">
+            <span className="user-chip">
+              Welcome, <strong>{username}</strong>
+            </span>
+            <button
+              type="button"
+              className="enterprise-btn enterprise-btn--secondary"
+              onClick={() => navigate("/")}
+            >
+              View List
+            </button>
+            <button
+              type="button"
+              className="enterprise-btn enterprise-btn--danger"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="custom-card enterprise-card">
+          <div className="form-section-header">
+            <div>
+              <h3>{userToEdit ? "Update Inventory Entry" : "New Inventory Entry"}</h3>
+              <p>Fields marked by validation must be completed before saving.</p>
+            </div>
+          </div>
+
+          <div className="card-body p-4 p-lg-5">
+            <form onSubmit={formik.handleSubmit}>
+              <div className="row g-4 mb-4">
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold">PXE Serial Number</label>
+                  <input
+                    type="text"
+                    name="pxeSerialNumber"
+                    className={`form-control form-control-lg ${
+                      formik.touched.pxeSerialNumber && formik.errors.pxeSerialNumber
+                        ? "is-invalid"
+                        : ""
+                    }`}
+                    placeholder="Enter serial number"
+                    onChange={formik.handleChange}
+                    value={formik.values.pxeSerialNumber}
+                  />
+                  {formik.touched.pxeSerialNumber &&
+                    formik.errors.pxeSerialNumber && (
+                      <div className="invalid-feedback">
+                        {formik.errors.pxeSerialNumber}
+                      </div>
+                    )}
+                </div>
+
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold">Date</label>
+                  <input
+                    type="date"
+                    name="date"
+                    className={`form-control form-control-lg ${
+                      formik.touched.date && formik.errors.date ? "is-invalid" : ""
+                    }`}
+                    onChange={formik.handleChange}
+                    value={formik.values.date}
+                  />
+                  {formik.touched.date && formik.errors.date && (
+                    <div className="invalid-feedback">{formik.errors.date}</div>
+                  )}
+                </div>
+
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold">Transaction Type</label>
+                  <select
+                    name="transactionType"
+                    className={`form-select form-select-lg ${
+                      formik.touched.transactionType && formik.errors.transactionType
+                        ? "is-invalid"
+                        : ""
+                    }`}
+                    onChange={formik.handleChange}
+                    value={formik.values.transactionType}
                   >
-                    ⬅ View List
+                    <option value="">Select Type</option>
+                    <option value="ISSUE">ISSUE</option>
+                    <option value="RECEIPT">RECEIPT</option>
+                    <option value="OTHERS">OTHERS</option>
+                  </select>
+                  {formik.touched.transactionType &&
+                    formik.errors.transactionType && (
+                      <div className="invalid-feedback">
+                        {formik.errors.transactionType}
+                      </div>
+                    )}
+                </div>
+              </div>
+
+              <div className="row g-4 mb-4">
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold">From</label>
+                  <input
+                    type="text"
+                    name="from"
+                    className={`form-control form-control-lg ${
+                      formik.touched.from && formik.errors.from ? "is-invalid" : ""
+                    }`}
+                    placeholder="Source location"
+                    onChange={formik.handleChange}
+                    value={formik.values.from}
+                  />
+                  {formik.touched.from && formik.errors.from && (
+                    <div className="invalid-feedback">{formik.errors.from}</div>
+                  )}
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold">To</label>
+                  <input
+                    type="text"
+                    name="to"
+                    className={`form-control form-control-lg ${
+                      formik.touched.to && formik.errors.to ? "is-invalid" : ""
+                    }`}
+                    placeholder="Destination location"
+                    onChange={formik.handleChange}
+                    value={formik.values.to}
+                  />
+                  {formik.touched.to && formik.errors.to && (
+                    <div className="invalid-feedback">{formik.errors.to}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="row g-4 mb-4">
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold">Reason</label>
+                  <input
+                    type="text"
+                    name="reason"
+                    className={`form-control form-control-lg ${
+                      formik.touched.reason && formik.errors.reason
+                        ? "is-invalid"
+                        : ""
+                    }`}
+                    placeholder="Reason for transaction"
+                    onChange={formik.handleChange}
+                    value={formik.values.reason}
+                  />
+                  {formik.touched.reason && formik.errors.reason && (
+                    <div className="invalid-feedback">{formik.errors.reason}</div>
+                  )}
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold">Serviceability State</label>
+                  <select
+                    name="serviceState"
+                    className={`form-select form-select-lg ${
+                      formik.touched.serviceState && formik.errors.serviceState
+                        ? "is-invalid"
+                        : ""
+                    }`}
+                    onChange={formik.handleChange}
+                    value={formik.values.serviceState}
+                  >
+                    <option value="">Select State</option>
+                    <option value="SERVICEABLE">SERVICEABLE</option>
+                    <option value="UN-SERVICEABLE">UN-SERVICEABLE</option>
+                  </select>
+                  {formik.touched.serviceState && formik.errors.serviceState && (
+                    <div className="invalid-feedback">{formik.errors.serviceState}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mb-5">
+                <label className="form-label fw-semibold">Remarks</label>
+                <textarea
+                  name="remarks"
+                  className={`form-control ${
+                    formik.touched.remarks && formik.errors.remarks
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                  rows="3"
+                  placeholder="Add any additional notes"
+                  onChange={formik.handleChange}
+                  value={formik.values.remarks}
+                />
+              </div>
+
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <button
+                    type="submit"
+                    className="enterprise-btn enterprise-btn--primary w-100 form-submit-btn"
+                    disabled={loading}
+                  >
+                    {loading && (
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                    )}
+                    {userToEdit ? "Update Details" : "Save Details"}
                   </button>
+                </div>
+                <div className="col-md-6">
                   <button
                     type="button"
-                    className="btn btn-danger btn-sm px-4 rounded-pill fw-semibold shadow-sm"
-                    onClick={handleLogout}
+                    className="enterprise-btn enterprise-btn--secondary w-100 form-submit-btn"
+                    onClick={() => formik.resetForm()}
                   >
-                    Logout 🚪
+                    Cancel
                   </button>
                 </div>
               </div>
 
-              <div className="card-body p-4">
-                <form onSubmit={formik.handleSubmit}>
-                  
-                  <div className="row g-3 mb-4">
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">PXE Serial Number</label>
-                      <input
-                        type="text"
-                        name="pxeSerialNumber"
-                        className={`form-control form-control-lg ${formik.touched.pxeSerialNumber && formik.errors.pxeSerialNumber ? 'is-invalid' : ''}`}
-                        placeholder="Enter Serial..."
-                        onChange={formik.handleChange}
-                        value={formik.values.pxeSerialNumber}
-                      />
-                      {formik.touched.pxeSerialNumber && formik.errors.pxeSerialNumber && (
-                        <div className="invalid-feedback">{formik.errors.pxeSerialNumber}</div>
-                      )}
-                    </div>
-                    
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">Date</label>
-                      <input
-                        type="date"
-                        name="date"
-                        className={`form-control form-control-lg ${formik.touched.date && formik.errors.date ? 'is-invalid' : ''}`}
-                        onChange={formik.handleChange}
-                        value={formik.values.date}
-                      />
-                      {formik.touched.date && formik.errors.date && (
-                        <div className="invalid-feedback">{formik.errors.date}</div>
-                      )}
-                    </div>
-                    
-                    <div className="col-md-4">
-                      <label className="form-label fw-semibold">Transaction Type</label>
-                      <select
-                        name="transactionType"
-                        className={`form-select form-select-lg ${formik.touched.transactionType && formik.errors.transactionType ? 'is-invalid' : ''}`}
-                        onChange={formik.handleChange}
-                        value={formik.values.transactionType}
-                      >
-                        <option value="">Select Type</option>
-                        <option value="ISSUE">ISSUE</option>
-                        <option value="RECEIPT">RECEIPT</option>
-                        <option value="OTHERS">OTHERS</option>
-                      </select>
-                      {formik.touched.transactionType && formik.errors.transactionType && (
-                        <div className="invalid-feedback">{formik.errors.transactionType}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="row g-3 mb-4">
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">From</label>
-                      <input
-                        type="text"
-                        name="from"
-                        className={`form-control form-control-lg ${formik.touched.from && formik.errors.from ? 'is-invalid' : ''}`}
-                        placeholder="Source Location"
-                        onChange={formik.handleChange}
-                        value={formik.values.from}
-                      />
-                      {formik.touched.from && formik.errors.from && (
-                        <div className="invalid-feedback">{formik.errors.from}</div>
-                      )}
-                    </div>
-                    
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">To</label>
-                      <input
-                        type="text"
-                        name="to"
-                        className={`form-control form-control-lg ${formik.touched.to && formik.errors.to ? 'is-invalid' : ''}`}
-                        placeholder="Destination Location"
-                        onChange={formik.handleChange}
-                        value={formik.values.to}
-                      />
-                      {formik.touched.to && formik.errors.to && (
-                        <div className="invalid-feedback">{formik.errors.to}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="row g-3 mb-4">
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">Reason</label>
-                      <input
-                        type="text"
-                        name="reason"
-                        className={`form-control form-control-lg ${formik.touched.reason && formik.errors.reason ? 'is-invalid' : ''}`}
-                        placeholder="Reason for transaction"
-                        onChange={formik.handleChange}
-                        value={formik.values.reason}
-                      />
-                      {formik.touched.reason && formik.errors.reason && (
-                        <div className="invalid-feedback">{formik.errors.reason}</div>
-                      )}
-                    </div>
-                    
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">Serviceability State</label>
-                      <select
-                        name="serviceState"
-                        className={`form-select form-select-lg ${formik.touched.serviceState && formik.errors.serviceState ? 'is-invalid' : ''}`}
-                        onChange={formik.handleChange}
-                        value={formik.values.serviceState}
-                      >
-                        <option value="">Select State</option>
-                        <option value="SERVICEABLE">SERVICEABLE</option>
-                        <option value="UN-SERVICEABLE">UN-SERVICEABLE</option>
-                      </select>
-                      {formik.touched.serviceState && formik.errors.serviceState && (
-                        <div className="invalid-feedback">{formik.errors.serviceState}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mb-5">
-                    <label className="form-label fw-semibold">Remarks</label>
-                    <textarea
-                      name="remarks"
-                      className={`form-control ${formik.touched.remarks && formik.errors.remarks ? 'is-invalid' : ''}`}
-                      rows="3"
-                      placeholder="Add any additional notes..."
-                      onChange={formik.handleChange}
-                      value={formik.values.remarks}
-                    />
-                  </div>
-
-                  {/* Submission Action Blocks */}
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <button 
-                        type="submit" 
-                        className="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm"
-                        disabled={loading}
-                      >
-                        {loading && <span className="spinner-border spinner-border-sm me-2"></span>}
-                        {userToEdit ? "Update Details" : "Save Details"}
-                      </button>
-                    </div>
-                    <div className="col-md-6">
-                      <button
-                        type="button"
-                        className="btn btn-light w-100 py-3 rounded-3 fw-semibold border shadow-sm"
-                        onClick={() => formik.resetForm()}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-
-                  {error && (
-                    <div className="alert alert-danger mt-4 text-center border-0 shadow-sm">
-                      {typeof error === "object" ? error.message : JSON.stringify(error)}
-                    </div>
-                  )}
-                </form>
-              </div>
-
-            </div>
+              {error && (
+                <div className="alert alert-danger mt-4 text-center border-0 shadow-sm">
+                  {typeof error === "object" ? error.message : JSON.stringify(error)}
+                </div>
+              )}
+            </form>
           </div>
         </div>
       </div>

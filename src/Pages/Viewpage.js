@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchUsersRequest,
@@ -10,11 +10,17 @@ import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./Viewpage.css";
+import { useAuth } from "../Context/AuthContext";
+import { useRole } from "../Context/RoleContext";
+import SortableHeader from "../Components/SortableHeader";
+import { nextSortConfig, sortTableRows } from "../utils/tableSort";
 
 const ViewPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { logout } = useAuth();
+  const { isAdmin } = useRole();
 
   const { loading, users, deleteUserResponse } = useSelector(
     (state) => state.user,
@@ -27,6 +33,12 @@ const ViewPage = () => {
     to: "",
     state: "",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState({
+    key: "pxeSerialNumber",
+    direction: "asc",
+  });
+  const recordsPerPage = 10;
 
   const actionOptions = ["ISSUED", "RECEIPT", "OTHERS"];
 
@@ -48,6 +60,7 @@ const ViewPage = () => {
       localStorage.removeItem("token");
       localStorage.removeItem("loginTimestamp");
 
+      logout();
       dispatch({ type: "LOGOUT" });
 
       toast.success("Logged out successfully");
@@ -143,6 +156,7 @@ const ViewPage = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
   };
 
   const getTypeBadge = (type) => {
@@ -193,52 +207,69 @@ const ViewPage = () => {
     );
   };
 
-  const sortedUsers = [...users].sort((a, b) => {
-    const serialA = a.pxeSerialNumber || "";
-    const serialB = b.pxeSerialNumber || "";
-    return serialA.localeCompare(serialB, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-  });
+  const filteredUsers = useMemo(() => {
+    const matchingUsers = users.filter((user) => {
+      const matchSerial = (user.pxeSerialNumber || "")
+        .toLowerCase()
+        .includes(filters.serial.toLowerCase());
+      const matchDate = filters.date
+        ? user.date?.split("T")[0] === filters.date
+        : true;
 
-  const filteredUsers = sortedUsers.filter((user) => {
-    const matchSerial = (user.pxeSerialNumber || "")
-      .toLowerCase()
-      .includes(filters.serial.toLowerCase());
-    const matchDate = filters.date
-      ? user.date?.split("T")[0] === filters.date
-      : true;
+      let matchType = true;
+      if (filters.type) {
+        const dbType = (user.transactionType || "").toUpperCase();
+        const filterVal = filters.type.toUpperCase();
 
-    let matchType = true;
-    if (filters.type) {
-      const dbType = (user.transactionType || "").toUpperCase();
-      const filterVal = filters.type.toUpperCase();
-
-      if (filterVal === "ISSUED" || filterVal === "ISSUE") {
-        matchType = dbType === "ISSUED" || dbType === "ISSUE";
-      } else {
-        matchType = dbType === filterVal;
+        if (filterVal === "ISSUED" || filterVal === "ISSUE") {
+          matchType = dbType === "ISSUED" || dbType === "ISSUE";
+        } else {
+          matchType = dbType === filterVal;
+        }
       }
-    }
 
-    const matchTo = (user.to || "")
-      .toLowerCase()
-      .includes(filters.to.toLowerCase());
-    const matchState = filters.state
-      ? (user.serviceState || "").toUpperCase() === filters.state.toUpperCase()
-      : true;
-    return matchSerial && matchDate && matchType && matchTo && matchState;
-  });
+      const matchTo = (user.to || "")
+        .toLowerCase()
+        .includes(filters.to.toLowerCase());
+      const matchState = filters.state
+        ? (user.serviceState || "").toUpperCase() === filters.state.toUpperCase()
+        : true;
+      return matchSerial && matchDate && matchType && matchTo && matchState;
+    });
+
+    return sortTableRows(matchingUsers, sortConfig);
+  }, [filters, sortConfig, users]);
+
+  const handleSort = (key) => {
+    setSortConfig((current) => nextSortConfig(current, key));
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.ceil(filteredUsers.length / recordsPerPage);
+  const pageStartIndex = (currentPage - 1) * recordsPerPage;
+  const paginatedUsers = filteredUsers.slice(
+    pageStartIndex,
+    pageStartIndex + recordsPerPage,
+  );
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
-    <div
-      className="container-fluid px-4 py-5"
-      style={{ background: "#f8f9fa", minHeight: "100vh" }}
-    >
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold text-dark m-0">PXE Inventory List</h2>
-        <div className="d-flex gap-2">
+    <div className="enterprise-page view-page">
+      <div className="enterprise-container">
+      <div className="page-toolbar">
+        <div>
+          <p className="page-kicker">Inventory Control</p>
+          <h2 className="page-title">PXE Inventory List</h2>
+          <p className="page-subtitle">
+            Track box movement, serviceability, destinations, and operational remarks.
+          </p>
+        </div>
+        <div className="toolbar-actions">
           <input
             type="file"
             ref={fileInputRef}
@@ -246,26 +277,36 @@ const ViewPage = () => {
             accept=".xlsx, .xls"
             onChange={handleImportExcel}
           />
+          {isAdmin && (
+            <>
+              <button
+                className="enterprise-btn enterprise-btn--warning"
+                onClick={() => fileInputRef.current.click()}
+              >
+                Import Excel
+              </button>
+              <button
+                className="enterprise-btn enterprise-btn--primary"
+                onClick={() => navigate("/add")}
+              >
+                Add New PXE
+              </button>
+              <button
+                className="enterprise-btn enterprise-btn--secondary"
+                onClick={() => navigate("/register")}
+              >
+                User Management
+              </button>
+            </>
+          )}
           <button
-            className="btn btn-warning shadow-sm fw-bold"
-            onClick={() => fileInputRef.current.click()}
-          >
-            Import Excel
-          </button>
-          <button
-            className="btn btn-primary px-4 shadow-sm fw-bold"
-            onClick={() => navigate("/add")}
-          >
-            + ADD NEW PXE
-          </button>
-          <button
-            className="btn btn-success px-4 shadow-sm fw-bold"
+            className="enterprise-btn enterprise-btn--success"
             onClick={exportToExcel}
           >
             Export Excel
           </button>
           <button
-            className="btn btn-danger px-4 shadow-sm fw-bold"
+            className="enterprise-btn enterprise-btn--danger"
             onClick={handleLogout}
           >
             Logout
@@ -273,7 +314,7 @@ const ViewPage = () => {
         </div>
       </div>
 
-      <div className="search-card mb-4 p-3 bg-white rounded shadow-sm">
+      <div className="search-card enterprise-card">
         <div className="row g-3">
           <div className="col-md-3">
             <label className="filter-label">Serial Number</label>
@@ -337,39 +378,39 @@ const ViewPage = () => {
         </div>
       </div>
 
-      <div className="table-container bg-white rounded shadow-sm">
+      <div className="table-container enterprise-card">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0 custom-table">
             <thead>
               <tr className="text-center">
                 <th className="ps-4">S.No</th>
-                <th>Date</th>
-                <th>PXE Serial Number</th>
-                <th>Type</th>
-                <th>From</th>
-                <th>To</th>
-                <th>State</th>
-                <th>Remarks</th>
-                <th className="pe-4">Actions</th>
+                <SortableHeader label="Date" sortKey="date" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="PXE Serial Number" sortKey="pxeSerialNumber" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="Type" sortKey="transactionType" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="From" sortKey="from" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="To" sortKey="to" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="State" sortKey="serviceState" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="Remarks" sortKey="remarks" sortConfig={sortConfig} onSort={handleSort} />
+                {isAdmin && <th className="pe-4">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-4">
+                  <td colSpan={isAdmin ? "9" : "8"} className="text-center py-4">
                     Loading...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-4 text-muted">
+                  <td colSpan={isAdmin ? "9" : "8"} className="text-center py-4 text-muted">
                     No records match.
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user, index) => (
+                paginatedUsers.map((user, index) => (
                   <tr key={user._id || index} className="text-center">
-                    <td className="ps-4 fw-bold">{index + 1}</td>
+                    <td className="ps-4 fw-bold">{pageStartIndex + index + 1}</td>
                     <td>{formatDateToDisplay(user.date)}</td>
                     <td className="fw-semibold text-primary">
                       {user.pxeSerialNumber}
@@ -379,31 +420,74 @@ const ViewPage = () => {
                     <td className="text-capitalize">{user.to}</td>
                     <td>{getStateBadge(user.serviceState)}</td>
                     <td>{user.remarks || "Ok"}</td>
-                    <td className="pe-4">
-                      <button
-                        className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() =>
-                          navigate("/add", { state: { userToEdit: user } })
-                        }
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => {
-                          if (window.confirm("Delete record?"))
-                            dispatch(deleteUserRequest(user._id));
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="pe-4">
+                        <button
+                          className="table-action table-action--edit"
+                          onClick={() =>
+                            navigate("/add", { state: { userToEdit: user } })
+                          }
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="table-action table-action--delete"
+                          onClick={() => {
+                            if (window.confirm("Delete record?"))
+                              dispatch(deleteUserRequest(user._id));
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+      </div>
+      {filteredUsers.length > recordsPerPage && (
+        <div className="pagination-bar" aria-label="PXE inventory pagination">
+          <button
+            type="button"
+            className="pagination-btn"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+          >
+            Previous
+          </button>
+          <div className="pagination-pages">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`pagination-page ${
+                    currentPage === pageNumber ? "is-active" : ""
+                  }`}
+                  aria-current={currentPage === pageNumber ? "page" : undefined}
+                  onClick={() => setCurrentPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="pagination-btn"
+            disabled={currentPage === totalPages}
+            onClick={() =>
+              setCurrentPage((page) => Math.min(page + 1, totalPages))
+            }
+          >
+            Next
+          </button>
+        </div>
+      )}
       </div>
     </div>
   );

@@ -1,8 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import SortableHeader from "../Components/SortableHeader";
+import { nextSortConfig, sortTableRows } from "../utils/tableSort";
 
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
+  const [sortConfig, setSortConfig] = useState({
+    key: "name",
+    direction: "asc",
+  });
 
   const getUsers = async () => {
     try {
@@ -23,6 +29,15 @@ const UsersPage = () => {
   useEffect(() => {
     getUsers();
   }, []);
+
+  const sortedUsers = useMemo(
+    () => sortTableRows(users, sortConfig),
+    [sortConfig, users],
+  );
+
+  const handleSort = (key) => {
+    setSortConfig((current) => nextSortConfig(current, key));
+  };
 
   return (
     <div
@@ -51,14 +66,32 @@ const UsersPage = () => {
       >
         <thead>
           <tr>
-            <th style={thStyle}>Name</th>
-            <th style={thStyle}>Email</th>
-            <th style={thStyle}>Role</th>
+            <SortableHeader
+              label="Name"
+              sortKey="name"
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              style={thStyle}
+            />
+            <SortableHeader
+              label="Email"
+              sortKey="email"
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              style={thStyle}
+            />
+            <SortableHeader
+              label="Role"
+              sortKey="role"
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              style={thStyle}
+            />
           </tr>
         </thead>
 
         <tbody>
-          {users.map((user, index) => (
+          {sortedUsers.map((user, index) => (
             <tr key={index}>
               <td style={tdStyle}>{user.name}</td>
               <td style={tdStyle}>{user.email}</td>
@@ -75,6 +108,7 @@ const thStyle = {
   border: "1px solid #334155",
   padding: "15px",
   background: "#334155",
+  textAlign: "center",
 };
 
 const tdStyle = {

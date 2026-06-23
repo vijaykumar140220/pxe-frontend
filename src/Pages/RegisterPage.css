@@ -1,0 +1,89 @@
+.register-card {
+  overflow: hidden;
+}
+
+.register-card__header {
+  padding: 22px 26px;
+  background: #081a3a;
+  border-bottom: 4px solid #1e40af;
+  color: #ffffff;
+}
+
+.register-card__header h3 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.register-card__header p {
+  margin: 5px 0 0;
+  color: #cbd5e1;
+  font-size: 0.86rem;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 22px;
+  padding: 28px 26px;
+}
+
+.register-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-field label {
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.register-field input,
+.register-field select {
+  min-height: 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 13px;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+}
+
+.register-field input:focus,
+.register-field select:focus {
+  border-color: #1e40af;
+  box-shadow: 0 0 0 0.18rem rgba(30, 64, 175, 0.14);
+}
+
+.register-field p {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.register-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 26px 28px;
+}
+
+@media (max-width: 768px) {
+  .register-grid {
+    grid-template-columns: 1fr;
+    padding: 22px 18px;
+  }
+
+  .register-card__header {
+    padding: 20px 18px;
+  }
+
+  .register-actions {
+    flex-direction: column;
+    padding: 0 18px 22px;
+  }
+}
