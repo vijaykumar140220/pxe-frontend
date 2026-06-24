@@ -390,7 +390,13 @@ const ViewPage = () => {
                 <SortableHeader label="From" sortKey="from" sortConfig={sortConfig} onSort={handleSort} />
                 <SortableHeader label="To" sortKey="to" sortConfig={sortConfig} onSort={handleSort} />
                 <SortableHeader label="State" sortKey="serviceState" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Remarks" sortKey="remarks" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader
+                  label="Remarks"
+                  sortKey="remarks"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  className="remarks-column"
+                />
                 {isAdmin && <th className="pe-4">Actions</th>}
               </tr>
             </thead>
@@ -412,14 +418,14 @@ const ViewPage = () => {
                   <tr key={user._id || index} className="text-center">
                     <td className="ps-4 fw-bold">{pageStartIndex + index + 1}</td>
                     <td>{formatDateToDisplay(user.date)}</td>
-                    <td className="fw-semibold text-primary">
+                    <td className="fw-semibold box-serial-name">
                       {user.pxeSerialNumber}
                     </td>
                     <td>{getTypeBadge(user.transactionType)}</td>
                     <td className="text-capitalize">{user.from}</td>
                     <td className="text-capitalize">{user.to}</td>
                     <td>{getStateBadge(user.serviceState)}</td>
-                    <td>{user.remarks || "Ok"}</td>
+                    <td className="remarks-column">{user.remarks || "Ok"}</td>
                     {isAdmin && (
                       <td className="pe-4">
                         <button

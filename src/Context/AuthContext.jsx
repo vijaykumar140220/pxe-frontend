@@ -11,7 +11,8 @@ const AuthContext = createContext(null);
 
 const SESSION_KEY = "pxeAuthUser";
 const USERS_KEY = "pxeRegisteredUsers";
-const SESSION_LIMIT = 30 * 60 * 1000;
+const SESSION_LIMIT = 60 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "lastActivityTimestamp";
 
 const defaultAdmin = {
   id: 1,
@@ -48,16 +49,27 @@ const getStoredUsers = () => {
   return hasAdmin ? users : [defaultAdmin, ...users];
 };
 
+const clearStoredSession = () => {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  localStorage.removeItem("name");
+  localStorage.removeItem("user");
+  localStorage.removeItem("role");
+  localStorage.removeItem("loginTimestamp");
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
+};
+
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     const session = readJson(SESSION_KEY, null);
-    const loginTimestamp = Number(localStorage.getItem("loginTimestamp"));
+    const lastActivityTimestamp =
+      Number(localStorage.getItem(LAST_ACTIVITY_KEY)) ||
+      Number(localStorage.getItem("loginTimestamp"));
 
-    if (!session || !loginTimestamp) return null;
-    if (Date.now() - loginTimestamp > SESSION_LIMIT) {
-      localStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem("token");
-      localStorage.removeItem("loginTimestamp");
+    if (!session || !lastActivityTimestamp) return null;
+    if (Date.now() - lastActivityTimestamp > SESSION_LIMIT) {
+      clearStoredSession();
       return null;
     }
 
@@ -87,6 +99,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("username", session.username);
     localStorage.setItem("role", session.role);
     localStorage.setItem("loginTimestamp", Date.now().toString());
+    localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
     setCurrentUser(session);
     return session;
   }, []);
@@ -117,13 +130,7 @@ export const AuthProvider = ({ children }) => {
     }), [persistSession]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("name");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
-    localStorage.removeItem("loginTimestamp");
+    clearStoredSession();
     setCurrentUser(null);
   }, []);
 

@@ -94,31 +94,50 @@
 }
 
 .settings-table-wrap {
-  overflow-x: auto;
+  min-height: 360px;
+  overflow: auto;
+  scrollbar-color: #94a3b8 #e2e8f0;
 }
 
 .settings-table {
   width: 100%;
   min-width: 1040px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .settings-table th,
 .settings-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 13px 16px;
+  border-bottom: 1px solid #e6edf5;
   color: #334155;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
   text-align: left;
   vertical-align: middle;
+  word-break: break-word;
 }
 
 .settings-table th {
-  color: #475569;
-  background: #f8fafc;
-  font-size: 0.72rem;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom-color: #1d4ed8;
+  color: #ffffff;
+  background: #1e3a8a;
+  font-size: 0.74rem;
   font-weight: 900;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.settings-table tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.settings-table tbody tr:hover td {
+  background: #eff6ff;
 }
 
 .settings-table td strong {

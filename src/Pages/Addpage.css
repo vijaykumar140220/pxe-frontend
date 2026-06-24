@@ -81,6 +81,12 @@
   text-align: left;
 }
 
+.form-label::after {
+  content: " *";
+  color: #dc2626;
+  font-weight: 900;
+}
+
 textarea.form-control {
   min-height: 108px;
   resize: vertical;

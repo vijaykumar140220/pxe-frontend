@@ -33,6 +33,17 @@ const emptyPasswordForm = {
   confirmPassword: "",
 };
 
+const fieldPlaceholders = {
+  name: "Enter full name",
+  employeeId: "Enter employee ID",
+  email: "Enter email address",
+  mobile: "Enter mobile number",
+  department: "Enter department",
+  designation: "Enter designation",
+  newPassword: "Enter new password",
+  confirmPassword: "Confirm new password",
+};
+
 const columns = [
   { key: "name", label: "Name" },
   { key: "employeeId", label: "Employee ID" },
@@ -417,7 +428,14 @@ const SettingsPage = () => {
 const Field = ({ label, name, type = "text", value, error, onChange, required = false }) => (
   <div className="settings-field">
     <label>{label}</label>
-    <input name={name} type={type} value={value} onChange={onChange} required={required} />
+    <input
+      name={name}
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={fieldPlaceholders[name]}
+      required={required}
+    />
     {error && <p>{error}</p>}
   </div>
 );

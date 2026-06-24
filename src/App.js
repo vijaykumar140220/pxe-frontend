@@ -25,21 +25,68 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 
 import "react-toastify/dist/ReactToastify.css";
 
+const INACTIVITY_LIMIT = 60 * 60 * 1000;
+const ACTIVITY_EVENTS = ["click", "keydown", "mousedown", "mousemove", "scroll", "touchstart"];
+
 const AppContent = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     let logoutTimer;
-    if (isAuthenticated) {
-      const tenMinutes = 10 * 60 * 1000;
-      logoutTimer = setTimeout(() => {
-        logout();
-        dispatch({ type: "LOGOUT" });
-        alert("Session expired after 10 minutes. Please login again.");
-      }, tenMinutes);
+
+    if (!isAuthenticated) return undefined;
+
+    let lastActivityWrite = 0;
+    let sessionExpired = false;
+
+    const expireSession = () => {
+      if (sessionExpired) return;
+      sessionExpired = true;
+      logout();
+      dispatch({ type: "LOGOUT" });
+      alert("Session expired after 1 hour of inactivity. Please login again.");
+    };
+
+    const scheduleExpiry = () => {
+      clearTimeout(logoutTimer);
+      const lastActivity =
+        Number(localStorage.getItem("lastActivityTimestamp")) || Date.now();
+      const remainingTime = INACTIVITY_LIMIT - (Date.now() - lastActivity);
+
+      if (remainingTime <= 0) {
+        expireSession();
+        return;
+      }
+
+      logoutTimer = setTimeout(expireSession, remainingTime);
+    };
+
+    const recordActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityWrite < 1000) return;
+      lastActivityWrite = now;
+      localStorage.setItem("lastActivityTimestamp", now.toString());
+      scheduleExpiry();
+    };
+
+    if (!localStorage.getItem("lastActivityTimestamp")) {
+      localStorage.setItem("lastActivityTimestamp", Date.now().toString());
     }
-    return () => clearTimeout(logoutTimer);
+
+    scheduleExpiry();
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, recordActivity);
+    });
+    document.addEventListener("visibilitychange", scheduleExpiry);
+
+    return () => {
+      clearTimeout(logoutTimer);
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, recordActivity);
+      });
+      document.removeEventListener("visibilitychange", scheduleExpiry);
+    };
   }, [isAuthenticated, dispatch, logout]);
 
   return (

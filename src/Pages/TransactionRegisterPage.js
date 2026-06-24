@@ -4,6 +4,12 @@ import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
 import SortableHeader from "../Components/SortableHeader";
 import { nextSortConfig, sortTableRows } from "../utils/tableSort";
+import {
+  BOX_SERIAL_INPUT_PATTERN,
+  BOX_SERIAL_PATTERN_TEXT,
+  isValidBoxSerial,
+  normalizeBoxSerial,
+} from "../utils/boxSerialValidation";
 import "./TransactionRegisterPage.css";
 
 const API_URL = "http://127.0.0.1:5000/transaction-history";
@@ -37,6 +43,20 @@ const columns = [
   { key: "boxStatus", label: "Box Status" },
   { key: "remarks", label: "Remarks" },
 ];
+
+const fieldPlaceholders = {
+  date: "Select date",
+  boxSerialNumber: "BOSS-CBOX1090",
+  transactionType: "Select transaction type",
+  fromName: "Enter sender name",
+  fromOffice: "Select source office",
+  fromLocation: "Select source location",
+  toName: "Enter receiver name",
+  toOffice: "Select destination office",
+  toLocation: "Select destination location",
+  boxStatus: "Select box status",
+  remarks: "Enter remarks",
+};
 
 const transactionTypes = ["PURCHASE", "ISSUE", "RECEIPT", "ON LOAN"];
 const boxStatuses = ["SERVICEABLE", "UN-SERVICEABLE", "NOT TRACED", "TAMPERED"];
@@ -286,13 +306,19 @@ const TransactionRegisterPage = () => {
     columns.forEach(({ key, label, required }) => {
       if (required && !String(form[key]).trim()) nextErrors[key] = `${label} is required`;
     });
+    if (form.boxSerialNumber.trim() && !isValidBoxSerial(form.boxSerialNumber)) {
+      nextErrors.boxSerialNumber = BOX_SERIAL_PATTERN_TEXT;
+    }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "boxSerialNumber" ? normalizeBoxSerial(value) : value,
+    }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -508,6 +534,9 @@ const TransactionRegisterPage = () => {
                       type={key === "date" ? "date" : "text"}
                       value={form[key]}
                       onChange={handleChange}
+                      placeholder={fieldPlaceholders[key]}
+                      pattern={key === "boxSerialNumber" ? BOX_SERIAL_INPUT_PATTERN : undefined}
+                      title={key === "boxSerialNumber" ? BOX_SERIAL_PATTERN_TEXT : undefined}
                     />
                   )}
                   {errors[key] && <p>{errors[key]}</p>}
@@ -573,6 +602,7 @@ const TransactionRegisterPage = () => {
                       sortKey={key}
                       sortConfig={sortConfig}
                       onSort={handleSort}
+                      className={key === "remarks" ? "remarks-column" : ""}
                     />
                   ))}
                 </tr>
@@ -589,7 +619,7 @@ const TransactionRegisterPage = () => {
                     <tr key={record._id || `${record.boxSerialNumber}-${index}`}>
                       <td>{pageStartIndex + index + 1}</td>
                       <td>{formatDate(record.date)}</td>
-                      <td className="fw-semibold text-primary">{displayValue(record.boxSerialNumber)}</td>
+                      <td className="fw-semibold box-serial-name">{displayValue(record.boxSerialNumber)}</td>
                       <td>{displayValue(record.transactionType)}</td>
                       <td>{displayValue(record.fromName)}</td>
                       <td>{displayValue(record.fromOffice)}</td>
@@ -598,7 +628,7 @@ const TransactionRegisterPage = () => {
                       <td>{displayValue(record.toOffice)}</td>
                       <td>{displayValue(record.toLocation)}</td>
                       <td>{displayValue(record.boxStatus)}</td>
-                      <td>{displayValue(record.remarks)}</td>
+                      <td className="remarks-column">{displayValue(record.remarks)}</td>
                     </tr>
                   ))
                 )}

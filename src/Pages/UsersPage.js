@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import SortableHeader from "../Components/SortableHeader";
 import { nextSortConfig, sortTableRows } from "../utils/tableSort";
+import "./UsersPage.css";
 
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -40,81 +41,73 @@ const UsersPage = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0f172a",
-        padding: "40px",
-        color: "white",
-      }}
-    >
-      <h1
-        style={{
-          textAlign: "center",
-          marginBottom: "40px",
-        }}
-      >
-        Registered Users
-      </h1>
+    <div className="enterprise-page users-page">
+      <div className="enterprise-container">
+        <div className="page-toolbar">
+          <div>
+            <p className="page-kicker">Access Control</p>
+            <h2 className="page-title">Registered Users</h2>
+            <p className="page-subtitle">Review user accounts and roles in one clean table.</p>
+          </div>
+        </div>
 
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          background: "#1e293b",
-        }}
-      >
-        <thead>
-          <tr>
-            <SortableHeader
-              label="Name"
-              sortKey="name"
-              sortConfig={sortConfig}
-              onSort={handleSort}
-              style={thStyle}
-            />
-            <SortableHeader
-              label="Email"
-              sortKey="email"
-              sortConfig={sortConfig}
-              onSort={handleSort}
-              style={thStyle}
-            />
-            <SortableHeader
-              label="Role"
-              sortKey="role"
-              sortConfig={sortConfig}
-              onSort={handleSort}
-              style={thStyle}
-            />
-          </tr>
-        </thead>
+        <div className="enterprise-card users-table-card">
+          <div className="users-table-toolbar">
+            <strong>{sortedUsers.length}</strong>
+            <span>Total users</span>
+          </div>
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0 custom-table users-table">
+              <thead>
+                <tr>
+                  <SortableHeader
+                    label="Name"
+                    sortKey="name"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Email"
+                    sortKey="email"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Role"
+                    sortKey="role"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                </tr>
+              </thead>
 
-        <tbody>
-          {sortedUsers.map((user, index) => (
-            <tr key={index}>
-              <td style={tdStyle}>{user.name}</td>
-              <td style={tdStyle}>{user.email}</td>
-              <td style={tdStyle}>{user.role}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              <tbody>
+                {sortedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="text-center py-4 text-muted">
+                      No users found.
+                    </td>
+                  </tr>
+                ) : (
+                  sortedUsers.map((user) => (
+                    <tr key={user._id || user.email}>
+                      <td className="fw-semibold">{user.name}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <span className={`users-role users-role--${String(user.role || "user").toLowerCase()}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
-
-const thStyle = {
-  border: "1px solid #334155",
-  padding: "15px",
-  background: "#334155",
-  textAlign: "center",
-};
-
-const tdStyle = {
-  border: "1px solid #334155",
-  padding: "15px",
-  textAlign: "center",
 };
 
 export default UsersPage;

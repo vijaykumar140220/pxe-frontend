@@ -12,6 +12,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./Addpage.css";
 import { useAuth } from "../Context/AuthContext";
+import {
+  BOX_SERIAL_INPUT_PATTERN,
+  BOX_SERIAL_PATTERN_TEXT,
+  normalizeBoxSerial,
+} from "../utils/boxSerialValidation";
 
 const AddPage = () => {
   const dispatch = useDispatch();
@@ -85,13 +90,17 @@ const AddPage = () => {
     },
 
     validationSchema: Yup.object({
-      pxeSerialNumber: Yup.string().required("Required"),
+      pxeSerialNumber: Yup.string()
+        .transform((value) => normalizeBoxSerial(value))
+        .matches(new RegExp(`^${BOX_SERIAL_INPUT_PATTERN}$`), BOX_SERIAL_PATTERN_TEXT)
+        .required("Required"),
       date: Yup.string().required("Required"),
       transactionType: Yup.string().required("Required"),
       from: Yup.string().required("Required"),
       to: Yup.string().required("Required"),
       reason: Yup.string().required("Required"),
       serviceState: Yup.string().required("Required"),
+      remarks: Yup.string().required("Required"),
     }),
 
     enableReinitialize: true,
@@ -173,8 +182,13 @@ const AddPage = () => {
                         : ""
                     }`}
                     placeholder="Enter serial number"
-                    onChange={formik.handleChange}
+                    onChange={(event) =>
+                      formik.setFieldValue("pxeSerialNumber", normalizeBoxSerial(event.target.value))
+                    }
                     value={formik.values.pxeSerialNumber}
+                    pattern={BOX_SERIAL_INPUT_PATTERN}
+                    title={BOX_SERIAL_PATTERN_TEXT}
+                    required
                   />
                   {formik.touched.pxeSerialNumber &&
                     formik.errors.pxeSerialNumber && (
@@ -194,6 +208,7 @@ const AddPage = () => {
                     }`}
                     onChange={formik.handleChange}
                     value={formik.values.date}
+                    required
                   />
                   {formik.touched.date && formik.errors.date && (
                     <div className="invalid-feedback">{formik.errors.date}</div>
@@ -211,6 +226,7 @@ const AddPage = () => {
                     }`}
                     onChange={formik.handleChange}
                     value={formik.values.transactionType}
+                    required
                   >
                     <option value="">Select Type</option>
                     <option value="ISSUE">ISSUE</option>
@@ -238,6 +254,7 @@ const AddPage = () => {
                     placeholder="Source location"
                     onChange={formik.handleChange}
                     value={formik.values.from}
+                    required
                   />
                   {formik.touched.from && formik.errors.from && (
                     <div className="invalid-feedback">{formik.errors.from}</div>
@@ -255,6 +272,7 @@ const AddPage = () => {
                     placeholder="Destination location"
                     onChange={formik.handleChange}
                     value={formik.values.to}
+                    required
                   />
                   {formik.touched.to && formik.errors.to && (
                     <div className="invalid-feedback">{formik.errors.to}</div>
@@ -276,6 +294,7 @@ const AddPage = () => {
                     placeholder="Reason for transaction"
                     onChange={formik.handleChange}
                     value={formik.values.reason}
+                    required
                   />
                   {formik.touched.reason && formik.errors.reason && (
                     <div className="invalid-feedback">{formik.errors.reason}</div>
@@ -293,6 +312,7 @@ const AddPage = () => {
                     }`}
                     onChange={formik.handleChange}
                     value={formik.values.serviceState}
+                    required
                   >
                     <option value="">Select State</option>
                     <option value="SERVICEABLE">SERVICEABLE</option>
@@ -317,7 +337,11 @@ const AddPage = () => {
                   placeholder="Add any additional notes"
                   onChange={formik.handleChange}
                   value={formik.values.remarks}
+                  required
                 />
+                {formik.touched.remarks && formik.errors.remarks && (
+                  <div className="invalid-feedback d-block">{formik.errors.remarks}</div>
+                )}
               </div>
 
               <div className="row g-3">

@@ -9,11 +9,13 @@
 .sort-header {
   display: inline-flex;
   align-items: center;
-  justify-content: inherit;
-  gap: 6px;
+  justify-content: center;
+  gap: 7px;
   width: 100%;
   border: 0;
-  padding: 0;
+  min-height: 28px;
+  border-radius: 5px;
+  padding: 3px 5px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -23,6 +25,15 @@
   text-transform: inherit;
   white-space: inherit;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.sort-header:hover,
+.sort-header:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  outline: 0;
 }
 
 .sort-header svg {
@@ -33,8 +44,103 @@
 }
 
 .sort-header.is-active {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.table-responsive {
+  min-height: 360px;
+  overflow: auto;
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+.table-responsive::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  border: 2px solid #e2e8f0;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.custom-table {
+  min-width: 1080px;
+  margin: 0;
+  border-color: #e2e8f0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.custom-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border: 0;
+  border-bottom: 1px solid #1d4ed8;
+  padding: 13px 14px;
+  color: #ffffff;
+  background: #1e3a8a;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.custom-table thead th:first-child {
+  border-top-left-radius: 0;
+}
+
+.custom-table thead th:last-child {
+  border-top-right-radius: 0;
+}
+
+.custom-table tbody td {
+  max-width: 280px;
+  padding: 13px 14px;
+  border-color: #e6edf5;
+  color: #334155;
+  background: #ffffff;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+.custom-table tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.custom-table tbody tr {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.custom-table tbody tr:hover td {
+  background: #eff6ff;
+}
+
+.custom-table tbody tr:hover {
+  box-shadow: inset 4px 0 0 #2563eb;
+}
+
+.custom-table .text-center,
+.custom-table .text-muted {
+  color: #64748b !important;
+  font-weight: 800;
+}
+
+.box-serial-name {
+  color: #000000 !important;
 }
 
 .app-header {

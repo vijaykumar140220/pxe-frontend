@@ -1,0 +1,55 @@
+.users-page .enterprise-container {
+  max-width: 100%;
+}
+
+.users-table-card {
+  overflow: hidden;
+}
+
+.users-table-toolbar {
+  min-height: 62px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #dbe4f0;
+  background: #ffffff;
+}
+
+.users-table-toolbar strong {
+  color: #081a3a;
+  font-size: 1rem;
+}
+
+.users-table-toolbar span {
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.users-table {
+  min-width: 760px;
+}
+
+.users-table th,
+.users-table td {
+  text-align: left;
+}
+
+.users-role {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  border-radius: 5px;
+  padding: 4px 8px;
+  color: #1e40af;
+  background: #dbeafe;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.users-role--admin {
+  color: #065f46;
+  background: #d1fae5;
+}

@@ -5,6 +5,12 @@ import * as XLSX from "xlsx";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import SortableHeader from "../Components/SortableHeader";
 import { nextSortConfig, sortTableRows } from "../utils/tableSort";
+import {
+  BOX_SERIAL_INPUT_PATTERN,
+  BOX_SERIAL_PATTERN_TEXT,
+  isValidBoxSerial,
+  normalizeBoxSerial,
+} from "../utils/boxSerialValidation";
 import "./InventoryMasterPage.css";
 
 const API_URL = "http://127.0.0.1:5000/inventory-master";
@@ -30,6 +36,17 @@ const columns = [
   { key: "vendor", label: "Vendor" },
   { key: "warranty", label: "Warranty" },
 ];
+
+const fieldPlaceholders = {
+  serialNumber: "BOSS-CBOX1090",
+  itemName: "Enter item name",
+  category: "Enter category",
+  invoiceNumber: "Enter invoice number",
+  purchaseDate: "Select purchase date",
+  purchasePrice: "Enter purchase price",
+  vendor: "Enter vendor name",
+  warranty: "Enter warranty details",
+};
 
 const getCellValue = (row, labels) => {
   const normalizeHeader = (value) =>
@@ -129,6 +146,10 @@ const getImportValidationMessage = (rows) => {
 
     if (!Number.isFinite(row.purchasePrice) || row.purchasePrice <= 0) {
       return `Row ${index + 2}: purchase price must be a valid number`;
+    }
+
+    if (!isValidBoxSerial(row.serialNumber)) {
+      return `Row ${index + 2}: serial number must be ${BOX_SERIAL_PATTERN_TEXT}`;
     }
   }
 
@@ -255,6 +276,9 @@ const InventoryMasterPage = () => {
         record.serialNumber?.toLowerCase() === form.serialNumber.trim().toLowerCase(),
     );
     if (duplicateSerial) nextErrors.serialNumber = "Serial number already exists";
+    if (form.serialNumber.trim() && !isValidBoxSerial(form.serialNumber)) {
+      nextErrors.serialNumber = BOX_SERIAL_PATTERN_TEXT;
+    }
 
     if (form.purchasePrice && Number(form.purchasePrice) <= 0) {
       nextErrors.purchasePrice = "Enter a valid price";
@@ -266,7 +290,10 @@ const InventoryMasterPage = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "serialNumber" ? normalizeBoxSerial(value) : value,
+    }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -468,6 +495,10 @@ const InventoryMasterPage = () => {
                     }
                     value={form[key]}
                     onChange={handleChange}
+                    placeholder={fieldPlaceholders[key]}
+                    pattern={key === "serialNumber" ? BOX_SERIAL_INPUT_PATTERN : undefined}
+                    title={key === "serialNumber" ? BOX_SERIAL_PATTERN_TEXT : undefined}
+                    required
                   />
                   {errors[key] && <p>{errors[key]}</p>}
                 </div>
@@ -569,7 +600,7 @@ const InventoryMasterPage = () => {
                   paginatedRecords.map((record, index) => (
                     <tr key={record._id || record.serialNumber}>
                       <td>{pageStartIndex + index + 1}</td>
-                      <td className="fw-semibold text-primary">{record.serialNumber}</td>
+                      <td className="fw-semibold box-serial-name">{record.serialNumber}</td>
                       <td>{record.itemName}</td>
                       <td>{record.category}</td>
                       <td>{record.invoiceNumber}</td>

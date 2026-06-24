@@ -210,6 +210,30 @@ const ChartPanel = ({ title, subtitle, children, action }) => (
   </section>
 );
 
+const getPaginationItems = (currentPage, totalPages) => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, "end-ellipsis", totalPages];
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [1, "start-ellipsis", totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [
+    1,
+    "start-ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "end-ellipsis",
+    totalPages,
+  ];
+};
+
 const DashboardPage = () => {
   const { isAdmin } = useRole();
   const [inventory, setInventory] = useState([]);
@@ -295,6 +319,7 @@ const DashboardPage = () => {
   const pageSize = 8;
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
   const pageRows = filteredTransactions.slice((page - 1) * pageSize, page * pageSize);
+  const paginationItems = getPaginationItems(page, totalPages);
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   const changeSort = (key) => setSort((current) => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" }));
@@ -381,7 +406,28 @@ const DashboardPage = () => {
               <div className="gov-card-heading"><div><h3>Recent Transactions Register</h3><p>Auditable asset movement activity retrieved from the database</p></div><span className="record-count">{compactNumber(filteredTransactions.length)} records</span></div>
               <div className="transaction-tools"><label><FiSearch /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search serial, office, status..." /></label><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}><option value="">All Statuses</option><option value="SERVICEABLE">Serviceable</option><option value="UN-SERVICEABLE">Un-Serviceable</option><option value="POLICE CUSTODY">Police Custody</option><option value="NOT TRACED">Not Traced</option></select></div>
               <div className="table-responsive"><table className="table command-table"><thead><tr>{[["boxSerialNumber", "Asset ID / Serial"], ["fromOffice", "From"], ["toOffice", "To"], ["transactionType", "Transaction Type"], ["boxStatus", "Status"], ["date", "Date"]].map(([key, label]) => <th key={key}><button type="button" onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === "asc" ? <FiArrowUp /> : <FiArrowDown />)}</button></th>)}</tr></thead><tbody>{pageRows.map((record, index) => <tr key={record._id || `${record.boxSerialNumber}-${index}`}><td><small>PXE-{String(record.boxSerialNumber || "").replace(/\D/g, "").slice(-4) || "NA"}</small><strong>{record.boxSerialNumber}</strong></td><td>{record.fromOffice || "N/A"}</td><td>{record.toOffice || "N/A"}</td><td><span className="type-badge">{record.transactionType || "N/A"}</span></td><td><span className={`status-badge status-badge--${normalize(record.boxStatus).replace(/[^A-Z]+/g, "-").toLowerCase()}`}>{record.boxStatus || "N/A"}</span></td><td>{formatDate(record.date)}</td></tr>)}</tbody></table></div>
-              <div className="command-pagination"><span>Page {page} of {totalPages}</span><div><button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => setPage((value) => value - 1)}><FiChevronLeft /></button><strong>{page}</strong><button type="button" aria-label="Next page" disabled={page === totalPages} onClick={() => setPage((value) => value + 1)}><FiChevronRight /></button></div></div>
+              <div className="command-pagination">
+                <span>Page {page} of {totalPages}</span>
+                <div className="command-pagination__pages">
+                  <button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => setPage((value) => Math.max(value - 1, 1))}><FiChevronLeft /></button>
+                  {paginationItems.map((item) =>
+                    typeof item === "number" ? (
+                      <button
+                        type="button"
+                        key={item}
+                        className={item === page ? "is-active" : ""}
+                        aria-current={item === page ? "page" : undefined}
+                        onClick={() => setPage(item)}
+                      >
+                        {item}
+                      </button>
+                    ) : (
+                      <span className="command-pagination__ellipsis" key={item}>...</span>
+                    ),
+                  )}
+                  <button type="button" aria-label="Next page" disabled={page === totalPages} onClick={() => setPage((value) => Math.min(value + 1, totalPages))}><FiChevronRight /></button>
+                </div>
+              </div>
             </section>
           </main>
 

@@ -16,6 +16,17 @@ const initialForm = {
   role: "USER",
 };
 
+const fieldPlaceholders = {
+  fullName: "Enter full name",
+  employeeId: "Enter employee ID",
+  email: "Enter email address",
+  mobile: "Enter mobile number",
+  department: "Enter department",
+  designation: "Enter designation",
+  password: "Enter password",
+  confirmPassword: "Confirm password",
+};
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
@@ -208,7 +219,13 @@ const RegisterPage = () => {
 const Field = ({ label, name, type = "text", value, error, onChange }) => (
   <div className="register-field">
     <label>{label}</label>
-    <input name={name} type={type} value={value} onChange={onChange} />
+    <input
+      name={name}
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={fieldPlaceholders[name]}
+    />
     {error && <p>{error}</p>}
   </div>
 );

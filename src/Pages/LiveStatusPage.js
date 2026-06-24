@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import * as XLSX from "xlsx";
 import SortableHeader from "../Components/SortableHeader";
 import { nextSortConfig, sortTableRows } from "../utils/tableSort";
 import "./LiveStatusPage.css";
@@ -101,6 +102,28 @@ const LiveStatusPage = () => {
     });
   };
 
+  const exportExcel = () => {
+    if (sortedRecords.length === 0) {
+      toast.error("No live status records available to export");
+      return;
+    }
+
+    const exportRows = sortedRecords.map((record, index) => ({
+      "S.No": index + 1,
+      "Serial Number": record.serialNumber || "",
+      "Last Updated": formatDate(record.lastUpdated),
+      "Current City": record.currentCity || "",
+      Location: record.location || "",
+      "Current Status": record.currentStatus || "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Live Status");
+    XLSX.writeFile(workbook, "PXE_Live_Status.xlsx");
+    toast.success("Live status exported");
+  };
+
   const serviceableCount = records.filter(
     (record) => record.currentStatus?.toUpperCase() === "SERVICEABLE",
   ).length;
@@ -120,6 +143,14 @@ const LiveStatusPage = () => {
             </p>
           </div>
           <div className="toolbar-actions">
+            <button
+              type="button"
+              className="enterprise-btn enterprise-btn--success"
+              onClick={exportExcel}
+              disabled={loading || sortedRecords.length === 0}
+            >
+              Export Excel
+            </button>
             <button
               type="button"
               className="enterprise-btn enterprise-btn--primary"
@@ -233,7 +264,7 @@ const LiveStatusPage = () => {
                     return (
                       <tr key={record._id || record.serialNumber}>
                         <td>{pageStartIndex + index + 1}</td>
-                        <td className="fw-semibold text-primary">
+                        <td className="fw-semibold box-serial-name">
                           {record.serialNumber}
                         </td>
                         <td>{formatDate(record.lastUpdated)}</td>

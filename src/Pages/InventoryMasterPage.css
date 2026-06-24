@@ -42,6 +42,12 @@
   text-transform: uppercase;
 }
 
+.master-field label::after {
+  content: " *";
+  color: #dc2626;
+  font-weight: 900;
+}
+
 .master-field input {
   min-height: 44px;
   border: 1px solid #cbd5e1;

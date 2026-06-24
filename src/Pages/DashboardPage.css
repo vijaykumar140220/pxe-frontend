@@ -305,7 +305,7 @@
 .command-table tbody tr:hover { background: #f8fafc; }
 .command-table td:first-child small, .command-table td:first-child strong { display: block; }
 .command-table td:first-child small { color: #94a3b8; font-size: .57rem; }
-.command-table td:first-child strong { margin-top: 2px; color: #1e40af; font-size: .7rem; }
+.command-table td:first-child strong { margin-top: 2px; color: #000000; font-size: .7rem; }
 .type-badge, .status-badge { display: inline-flex; padding: 4px 7px; border-radius: 4px; font-size: .59rem; font-weight: 900; white-space: nowrap; }
 .type-badge { color: #1e40af; background: #dbeafe; }
 .status-badge { color: #475569; background: #e2e8f0; }
@@ -313,10 +313,11 @@
 .status-badge--un-serviceable { color: #92400e; background: #fef3c7; }
 .status-badge--police-custody, .status-badge--not-traced, .status-badge--tampered { color: #991b1b; background: #fee2e2; }
 .command-pagination { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; color: #64748b; font-size: .67rem; font-weight: 700; }
-.command-pagination > div { display: flex; align-items: center; gap: 5px; }
-.command-pagination button, .command-pagination strong { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #d8e0ea; border-radius: 5px; color: #1e40af; background: #fff; }
-.command-pagination strong { color: #fff; background: #1e40af; }
+.command-pagination__pages { display: flex; align-items: center; gap: 5px; }
+.command-pagination button { display: grid; min-width: 30px; height: 30px; place-items: center; border: 1px solid #d8e0ea; border-radius: 5px; color: #1e40af; background: #fff; font-weight: 900; }
+.command-pagination button.is-active { border-color: #1e40af; color: #fff; background: #1e40af; }
 .command-pagination button:disabled { color: #94a3b8; background: #f1f5f9; }
+.command-pagination__ellipsis { display: grid; min-width: 22px; height: 30px; place-items: center; color: #64748b; font-weight: 900; }
 
 .command-rail { position: sticky; top: 94px; display: grid; gap: 12px; }
 .rail-panel { padding: 15px; }
