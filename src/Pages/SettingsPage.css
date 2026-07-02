@@ -43,9 +43,18 @@
   font-weight: 900;
 }
 
-.settings-stat--blue { --stat-color: #1d4ed8; --stat-bg: #dbeafe; }
-.settings-stat--green { --stat-color: #047857; --stat-bg: #d1fae5; }
-.settings-stat--gray { --stat-color: #475569; --stat-bg: #e2e8f0; }
+.settings-stat--blue {
+  --stat-color: #1d4ed8;
+  --stat-bg: #dbeafe;
+}
+.settings-stat--green {
+  --stat-color: #047857;
+  --stat-bg: #d1fae5;
+}
+.settings-stat--gray {
+  --stat-color: #475569;
+  --stat-bg: #e2e8f0;
+}
 
 .settings-card {
   overflow: hidden;
@@ -150,11 +159,13 @@
   display: inline-flex;
   align-items: center;
   min-height: 25px;
+  min-width: 72px;
   border-radius: 5px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   font-size: 0.7rem;
   font-weight: 900;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .settings-role--user,
@@ -318,7 +329,9 @@
 }
 
 @keyframes settings-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {

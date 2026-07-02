@@ -86,7 +86,9 @@ const SettingsPage = () => {
       setUsers(Array.isArray(response.data) ? response.data : []);
       if (notify) toast.success("Register credentials refreshed");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to load register credentials");
+      toast.error(
+        error.response?.data?.message || "Unable to load register credentials",
+      );
     } finally {
       setLoading(false);
     }
@@ -98,11 +100,21 @@ const SettingsPage = () => {
 
   const filteredUsers = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const matchingUsers = !term ? users : users.filter((user) =>
-      [user.name, user.employeeId, user.email, user.mobile, user.department, user.designation, user.role]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
-    );
+    const matchingUsers = !term
+      ? users
+      : users.filter((user) =>
+          [
+            user.name,
+            user.employeeId,
+            user.email,
+            user.mobile,
+            user.department,
+            user.designation,
+            user.role,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(term)),
+        );
 
     return sortTableRows(matchingUsers, sortConfig);
   }, [search, sortConfig, users]);
@@ -141,7 +153,8 @@ const SettingsPage = () => {
   const handlePasswordChange = (event) => {
     const { name, value } = event.target;
     setPasswordForm((current) => ({ ...current, [name]: value }));
-    if (passwordErrors[name]) setPasswordErrors((current) => ({ ...current, [name]: "" }));
+    if (passwordErrors[name])
+      setPasswordErrors((current) => ({ ...current, [name]: "" }));
   };
 
   const validatePasswordForm = () => {
@@ -172,13 +185,22 @@ const SettingsPage = () => {
 
     try {
       setSaving(true);
-      const response = await axios.put(`${USERS_API_URL}/${editingUser._id}`, form);
+      const response = await axios.put(
+        `${USERS_API_URL}/${editingUser._id}`,
+        form,
+      );
       const updatedUser = response.data?.user || { ...editingUser, ...form };
-      setUsers((current) => current.map((user) => (user._id === editingUser._id ? updatedUser : user)));
+      setUsers((current) =>
+        current.map((user) =>
+          user._id === editingUser._id ? updatedUser : user,
+        ),
+      );
       toast.success("Register credential updated");
       closeEditor();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to update register credential");
+      toast.error(
+        error.response?.data?.message || "Unable to update register credential",
+      );
     } finally {
       setSaving(false);
     }
@@ -186,14 +208,17 @@ const SettingsPage = () => {
 
   const handleDelete = async (user) => {
     const label = user.name || user.email || "this register";
-    if (!window.confirm(`Delete ${label}? This action cannot be undone.`)) return;
+    if (!window.confirm(`Delete ${label}? This action cannot be undone.`))
+      return;
 
     try {
       await axios.delete(`${USERS_API_URL}/${user._id}`);
       setUsers((current) => current.filter((item) => item._id !== user._id));
       toast.success("Register credential deleted");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to delete register credential");
+      toast.error(
+        error.response?.data?.message || "Unable to delete register credential",
+      );
     }
   };
 
@@ -203,11 +228,18 @@ const SettingsPage = () => {
 
     try {
       setSaving(true);
-      await axios.put(`${USERS_API_URL}/${resettingUser._id}/admin-reset-password`, passwordForm);
-      toast.success(`Password reset for ${resettingUser.name || resettingUser.email}`);
+      await axios.put(
+        `${USERS_API_URL}/${resettingUser._id}/admin-reset-password`,
+        passwordForm,
+      );
+      toast.success(
+        `Password reset for ${resettingUser.name || resettingUser.email}`,
+      );
       closePasswordReset();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to reset user password");
+      toast.error(
+        error.response?.data?.message || "Unable to reset user password",
+      );
     } finally {
       setSaving(false);
     }
@@ -221,7 +253,8 @@ const SettingsPage = () => {
             <p className="page-kicker">Administrative Settings</p>
             <h2 className="page-title">Register Credentials</h2>
             <p className="page-subtitle">
-              Manage registered account access details without loading the dashboard module.
+              Manage registered account access details without loading the
+              dashboard module.
             </p>
           </div>
           <div className="toolbar-actions">
@@ -248,14 +281,18 @@ const SettingsPage = () => {
             <FiShield />
             <div>
               <span>Admins</span>
-              <strong>{users.filter((user) => user.role === "admin").length}</strong>
+              <strong>
+                {users.filter((user) => user.role === "admin").length}
+              </strong>
             </div>
           </article>
           <article className="enterprise-card settings-stat settings-stat--gray">
             <FiSettings />
             <div>
               <span>Users</span>
-              <strong>{users.filter((user) => user.role !== "admin").length}</strong>
+              <strong>
+                {users.filter((user) => user.role !== "admin").length}
+              </strong>
             </div>
           </article>
         </section>
@@ -289,35 +326,57 @@ const SettingsPage = () => {
                       onSort={handleSort}
                     />
                   ))}
-                  <th>Password</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="9" className="settings-empty">Loading register credentials...</td>
+                    <td colSpan="8" className="settings-empty">
+                      Loading register credentials...
+                    </td>
                   </tr>
                 ) : filteredUsers.length ? (
                   filteredUsers.map((user) => (
                     <tr key={user._id}>
-                      <td><strong>{user.name || "N/A"}</strong></td>
+                      <td>
+                        <strong>{user.name || "N/A"}</strong>
+                      </td>
                       <td>{user.employeeId || "N/A"}</td>
                       <td>{user.email || "N/A"}</td>
                       <td>{user.mobile || "N/A"}</td>
                       <td>{user.department || "N/A"}</td>
                       <td>{user.designation || "N/A"}</td>
-                      <td><span className={`settings-role settings-role--${user.role || "user"}`}>{user.role || "user"}</span></td>
-                      <td><span className="settings-password">Protected</span></td>
+                      <td>
+                        <span
+                          className={`settings-role settings-role--${user.role || "user"}`}
+                        >
+                          {user.role || "user"}
+                        </span>
+                      </td>
                       <td>
                         <div className="settings-actions">
-                          <button type="button" title="Edit register" onClick={() => openEditor(user)}>
+                          <button
+                            type="button"
+                            title="Edit register"
+                            onClick={() => openEditor(user)}
+                          >
                             <FiEdit2 />
                           </button>
-                          <button type="button" title="Reset password" className="is-warning" onClick={() => openPasswordReset(user)}>
+                          <button
+                            type="button"
+                            title="Reset password"
+                            className="is-warning"
+                            onClick={() => openPasswordReset(user)}
+                          >
                             <FiKey />
                           </button>
-                          <button type="button" title="Delete register" className="is-danger" onClick={() => handleDelete(user)}>
+                          <button
+                            type="button"
+                            title="Delete register"
+                            className="is-danger"
+                            onClick={() => handleDelete(user)}
+                          >
                             <FiTrash2 />
                           </button>
                         </div>
@@ -326,7 +385,9 @@ const SettingsPage = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" className="settings-empty">No register credentials found.</td>
+                    <td colSpan="8" className="settings-empty">
+                      No register credentials found.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -336,8 +397,16 @@ const SettingsPage = () => {
       </div>
 
       {editingUser && (
-        <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Edit register credential">
-          <form className="enterprise-card settings-editor" onSubmit={handleSubmit}>
+        <div
+          className="settings-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit register credential"
+        >
+          <form
+            className="enterprise-card settings-editor"
+            onSubmit={handleSubmit}
+          >
             <div className="settings-editor__header">
               <div>
                 <h3>Edit Register</h3>
@@ -349,12 +418,45 @@ const SettingsPage = () => {
             </div>
 
             <div className="settings-editor__grid">
-              <Field label="Full Name" name="name" value={form.name} onChange={handleChange} required />
-              <Field label="Employee ID" name="employeeId" value={form.employeeId} onChange={handleChange} />
-              <Field label="Email" name="email" type="email" value={form.email} onChange={handleChange} required />
-              <Field label="Mobile" name="mobile" value={form.mobile} onChange={handleChange} />
-              <Field label="Department" name="department" value={form.department} onChange={handleChange} />
-              <Field label="Designation" name="designation" value={form.designation} onChange={handleChange} />
+              <Field
+                label="Full Name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+              />
+              <Field
+                label="Employee ID"
+                name="employeeId"
+                value={form.employeeId}
+                onChange={handleChange}
+              />
+              <Field
+                label="Email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+              <Field
+                label="Mobile"
+                name="mobile"
+                value={form.mobile}
+                onChange={handleChange}
+              />
+              <Field
+                label="Department"
+                name="department"
+                value={form.department}
+                onChange={handleChange}
+              />
+              <Field
+                label="Designation"
+                name="designation"
+                value={form.designation}
+                onChange={handleChange}
+              />
               <div className="settings-field">
                 <label>Role</label>
                 <select name="role" value={form.role} onChange={handleChange}>
@@ -365,10 +467,18 @@ const SettingsPage = () => {
             </div>
 
             <div className="settings-editor__actions">
-              <button type="button" className="enterprise-btn enterprise-btn--secondary" onClick={closeEditor}>
+              <button
+                type="button"
+                className="enterprise-btn enterprise-btn--secondary"
+                onClick={closeEditor}
+              >
                 Cancel
               </button>
-              <button type="submit" className="enterprise-btn enterprise-btn--primary" disabled={saving}>
+              <button
+                type="submit"
+                className="enterprise-btn enterprise-btn--primary"
+                disabled={saving}
+              >
                 Save Changes
               </button>
             </div>
@@ -377,14 +487,26 @@ const SettingsPage = () => {
       )}
 
       {resettingUser && (
-        <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Reset user password">
-          <form className="enterprise-card settings-editor settings-password-editor" onSubmit={handlePasswordSubmit}>
+        <div
+          className="settings-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reset user password"
+        >
+          <form
+            className="enterprise-card settings-editor settings-password-editor"
+            onSubmit={handlePasswordSubmit}
+          >
             <div className="settings-editor__header">
               <div>
                 <h3>Reset User Password</h3>
                 <p>{resettingUser.name || resettingUser.email}</p>
               </div>
-              <button type="button" title="Close reset password" onClick={closePasswordReset}>
+              <button
+                type="button"
+                title="Close reset password"
+                onClick={closePasswordReset}
+              >
                 <FiX />
               </button>
             </div>
@@ -411,10 +533,18 @@ const SettingsPage = () => {
             </div>
 
             <div className="settings-editor__actions">
-              <button type="button" className="enterprise-btn enterprise-btn--secondary" onClick={closePasswordReset}>
+              <button
+                type="button"
+                className="enterprise-btn enterprise-btn--secondary"
+                onClick={closePasswordReset}
+              >
                 Cancel
               </button>
-              <button type="submit" className="enterprise-btn enterprise-btn--primary" disabled={saving}>
+              <button
+                type="submit"
+                className="enterprise-btn enterprise-btn--primary"
+                disabled={saving}
+              >
                 Reset Password
               </button>
             </div>
@@ -425,7 +555,15 @@ const SettingsPage = () => {
   );
 };
 
-const Field = ({ label, name, type = "text", value, error, onChange, required = false }) => (
+const Field = ({
+  label,
+  name,
+  type = "text",
+  value,
+  error,
+  onChange,
+  required = false,
+}) => (
   <div className="settings-field">
     <label>{label}</label>
     <input

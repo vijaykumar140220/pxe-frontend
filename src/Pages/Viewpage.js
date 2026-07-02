@@ -1,499 +1,706 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchUsersRequest,
-  deleteUserRequest,
-  resetUserResponse,
-} from "../Redux/Action";
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import * as XLSX from "xlsx";
-import "bootstrap/dist/css/bootstrap.min.css";
+﻿import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import "./Viewpage.css";
-import { useAuth } from "../Context/AuthContext";
-import { useRole } from "../Context/RoleContext";
-import SortableHeader from "../Components/SortableHeader";
-import { nextSortConfig, sortTableRows } from "../utils/tableSort";
+import { getBoxRemarkText } from "../utils/reportData";
+
+const TRANSACTION_API_URL = "http://127.0.0.1:5000/transaction-history";
+const SELECTED_BOXES_STORAGE_KEY = "pxe_selected_boxes";
 
 const ViewPage = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const fileInputRef = useRef(null);
-  const { logout } = useAuth();
-  const { isAdmin } = useRole();
-
-  const { loading, users, deleteUserResponse } = useSelector(
-    (state) => state.user,
-  );
-
-  const [filters, setFilters] = useState({
-    serial: "",
+  const reportRef = useRef(null);
+  const [records, setRecords] = useState([]);
+  const [lookupSerial, setLookupSerial] = useState("");
+  const [fetchedBox, setFetchedBox] = useState(null);
+  const [selectedBoxes, setSelectedBoxes] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SELECTED_BOXES_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (error) {
+      return [];
+    }
+  });
+  const [fetchError, setFetchError] = useState(null);
+  const [addError, setAddError] = useState(null);
+  const [addSuccess, setAddSuccess] = useState("");
+  const [issuedBy, setIssuedBy] = useState({
+    name: "",
+    mobile: "",
+    company: "",
+    place: "",
     date: "",
-    type: "",
-    to: "",
-    state: "",
+    signatureFileName: "",
+    signaturePreview: "",
   });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortConfig, setSortConfig] = useState({
-    key: "pxeSerialNumber",
-    direction: "asc",
+  const [receivedBy, setReceivedBy] = useState({
+    name: "",
+    mobile: "",
+    company: "",
+    place: "",
+    date: "",
+    signatureFileName: "",
+    signaturePreview: "",
   });
-  const recordsPerPage = 10;
 
-  const actionOptions = ["ISSUED", "RECEIPT", "OTHERS"];
-
-  useEffect(() => {
-    dispatch(fetchUsersRequest());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (deleteUserResponse) {
-      toast.success("Record deleted successfully!");
-      dispatch(fetchUsersRequest());
-      dispatch(resetUserResponse());
-    }
-  }, [deleteUserResponse, dispatch]);
-
-
-  const handleLogout = () => {
-    if (window.confirm("Are you sure you want to log out?")) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("loginTimestamp");
-
-      logout();
-      dispatch({ type: "LOGOUT" });
-
-      toast.success("Logged out successfully");
-      
-      navigate("/"); 
-    }
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    };
   };
 
-  const exportToExcel = () => {
-    if (filteredUsers.length === 0) {
-      toast.error("No data available to export");
-      return;
-    }
-    const exportData = filteredUsers.map(
-      ({ _id, __v, createdAt, updatedAt, ...rest }) => rest,
-    );
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "PXE_Inventory");
-    const fileName = `PXE_Export_${new Date().toISOString().split("T")[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
-    toast.success("Excel file exported successfully!");
-  };
-
-  const handleImportExcel = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
+  useEffect(() => {
+    const loadRecords = async () => {
       try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: "binary", cellDates: true });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const rawData = XLSX.utils.sheet_to_json(ws);
-
-        const formattedData = rawData.map((item) => {
-          let rawDate = item["Date"] || item["date"];
-          const d = new Date(rawDate);
-
-          return {
-            date: !isNaN(d.getTime())
-              ? d.toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0],
-            pxeSerialNumber: String(
-              item["Serial Number"] || item["pxeSerialNumber"] || "",
-            ),
-            transactionType: String(
-              item["Action"] || item["transactionType"] || "",
-            ).toUpperCase(),
-            from: String(item["Location"] || item["from"] || "N/A"),
-            to: String(item["To"] || item["to"] || "Warehouse"),
-            reason: String(
-              item["Reason"] || item["reason"] || "Bulk Excel Import",
-            ),
-            serviceState: String(
-              item["Status"] || item["serviceState"] || "SERVICEABLE",
-            ).toUpperCase(),
-            remarks: String(item["Remarks"] || item["remarks"] || "Ok"),
-          };
-        });
-
-        const response = await fetch(
-          "http://localhost:5000/crud-operations/bulk",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formattedData),
-          },
-        );
-
-        if (response.ok) {
-          toast.success(`${formattedData.length} records imported!`);
-          dispatch(fetchUsersRequest());
-        } else {
-          throw new Error("Server rejected data. Check console.");
-        }
-      } catch (err) {
-        toast.error(`Import Error: ${err.message}`);
+        const response = await axios.get(TRANSACTION_API_URL, getAuthHeaders());
+        setRecords(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Unable to load PXE status data", error);
       }
     };
-    reader.readAsBinaryString(file);
-    e.target.value = null;
+
+    loadRecords();
+  }, []);
+
+  const normalizeText = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  const getBoxSerial = (box) =>
+    String(
+      box?.boxSerialNumber || box?.serialNumber || box?.pxeSerialNumber || "",
+    ).trim();
+
+  const createUniqueId = () =>
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `box-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const findMatchingBox = (serial) => {
+    const normalized = normalizeText(serial);
+    if (!normalized) return null;
+
+    const matches = records
+      .filter((record) =>
+        [record.boxSerialNumber, record.serialNumber, record.pxeSerialNumber]
+          .filter(Boolean)
+          .some((value) => normalizeText(value) === normalized),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.date || b.createdAt || 0) -
+          new Date(a.date || a.createdAt || 0),
+      );
+
+    return matches[0] || null;
   };
 
-  const formatDateToDisplay = (dateString) => {
-    if (!dateString) return "N/A";
-    const d = new Date(dateString);
-    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+  const handleFetchBox = () => {
+    setFetchError(null);
+    setFetchedBox(null);
+    setAddError(null);
+
+    if (!lookupSerial.trim()) {
+      setFetchError("Enter a box serial number to fetch details.");
+      return;
+    }
+
+    const box = findMatchingBox(lookupSerial);
+    if (!box) {
+      setFetchError("No matching PXE box details found.");
+      return;
+    }
+
+    setFetchedBox(box);
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1);
-  };
+  const handleAddBox = () => {
+    setAddError(null);
 
-  const getTypeBadge = (type) => {
-    const upperType = type?.toUpperCase() || "N/A";
-    let bgColor = "#6c757d";
-    if (upperType === "ISSUED" || upperType === "ISSUE") bgColor = "#00bad1";
-    if (upperType === "RETURNED" || upperType === "RECEIPT")
-      bgColor = "#f1a500";
-    if (upperType === "REPAIR SENT") bgColor = "#6f42c1";
-    if (upperType === "DISPOSED") bgColor = "#dc3545";
-    if (upperType === "INITIAL DATA PORTING") bgColor = "#28a745";
+    if (!fetchedBox) {
+      setAddError("Fetch a box first before adding.");
+      return;
+    }
 
-    return (
-      <span
-        style={{
-          padding: "4px 12px",
-          borderRadius: "6px",
-          fontSize: "0.75rem",
-          fontWeight: "bold",
-          color: "white",
-          display: "inline-block",
-          backgroundColor: bgColor,
-          minWidth: "100px",
-        }}
-      >
-        {upperType}
-      </span>
-    );
-  };
+    const boxSerial = getBoxSerial(fetchedBox);
+    if (!boxSerial) {
+      setAddError("Selected box does not have a valid serial number.");
+      return;
+    }
 
-  const getStateBadge = (state) => {
-    const upperState = state?.toUpperCase();
-    const isServiceable = upperState === "SERVICEABLE";
-    return (
-      <span
-        style={{
-          padding: "4px 12px",
-          borderRadius: "6px",
-          fontSize: "0.75rem",
-          fontWeight: "bold",
-          color: "white",
-          display: "inline-block",
-          backgroundColor: isServiceable ? "#28a745" : "#dc3545",
-        }}
-      >
-        {upperState || "N/A"}
-      </span>
-    );
-  };
+    const normalizedBoxSerial = normalizeText(boxSerial);
+    if (
+      selectedBoxes.some(
+        (item) => normalizeText(item.boxSerialNumber) === normalizedBoxSerial,
+      )
+    ) {
+      setAddError("This box is already added to the report.");
+      setAddSuccess("");
+      return;
+    }
 
-  const filteredUsers = useMemo(() => {
-    const matchingUsers = users.filter((user) => {
-      const matchSerial = (user.pxeSerialNumber || "")
-        .toLowerCase()
-        .includes(filters.serial.toLowerCase());
-      const matchDate = filters.date
-        ? user.date?.split("T")[0] === filters.date
-        : true;
-
-      let matchType = true;
-      if (filters.type) {
-        const dbType = (user.transactionType || "").toUpperCase();
-        const filterVal = filters.type.toUpperCase();
-
-        if (filterVal === "ISSUED" || filterVal === "ISSUE") {
-          matchType = dbType === "ISSUED" || dbType === "ISSUE";
-        } else {
-          matchType = dbType === filterVal;
-        }
-      }
-
-      const matchTo = (user.to || "")
-        .toLowerCase()
-        .includes(filters.to.toLowerCase());
-      const matchState = filters.state
-        ? (user.serviceState || "").toUpperCase() === filters.state.toUpperCase()
-        : true;
-      return matchSerial && matchDate && matchType && matchTo && matchState;
+    setSelectedBoxes((prev) => {
+      const updated = [
+        ...prev,
+        {
+          id: createUniqueId(),
+          boxSerialNumber: boxSerial,
+          status:
+            fetchedBox.boxStatus ||
+            fetchedBox.serviceState ||
+            fetchedBox.currentStatus ||
+            "N/A",
+          date: fetchedBox.date || fetchedBox.createdAt || "",
+          type: fetchedBox.transactionType || fetchedBox.action || "N/A",
+          to:
+            fetchedBox.toOffice ||
+            fetchedBox.to ||
+            fetchedBox.toLocation ||
+            "N/A",
+          from: fetchedBox.fromOffice || fetchedBox.from || "N/A",
+          remarks: getBoxRemarkText(fetchedBox),
+        },
+      ];
+      localStorage.setItem(SELECTED_BOXES_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
     });
 
-    return sortTableRows(matchingUsers, sortConfig);
-  }, [filters, sortConfig, users]);
-
-  const handleSort = (key) => {
-    setSortConfig((current) => nextSortConfig(current, key));
-    setCurrentPage(1);
+    setLookupSerial("");
+    setFetchedBox(null);
+    setAddError(null);
+    setAddSuccess("Box added successfully.");
+    setTimeout(() => setAddSuccess(""), 3000);
   };
 
-  const totalPages = Math.ceil(filteredUsers.length / recordsPerPage);
-  const pageStartIndex = (currentPage - 1) * recordsPerPage;
-  const paginatedUsers = filteredUsers.slice(
-    pageStartIndex,
-    pageStartIndex + recordsPerPage,
+  const handleRemoveBox = (boxId) => {
+    setSelectedBoxes((prev) => {
+      const updated = prev.filter((item) => item.id !== boxId);
+      localStorage.setItem(SELECTED_BOXES_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateBoxQuantity = (boxId, field, value) => {
+    setSelectedBoxes((prev) => {
+      const updated = prev.map((item) =>
+        item.id === boxId
+          ? {
+              ...item,
+              [field]: Number(value >= 0 ? value : 0),
+            }
+          : item,
+      );
+      localStorage.setItem(SELECTED_BOXES_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateIssuedBy = (field, value) => {
+    setIssuedBy((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateReceivedBy = (field, value) => {
+    setReceivedBy((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSignatureUpload = (type, file) => {
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    if (type === "issued") {
+      setIssuedBy((prev) => ({
+        ...prev,
+        signatureFileName: file.name,
+        signaturePreview: previewUrl,
+      }));
+    } else {
+      setReceivedBy((prev) => ({
+        ...prev,
+        signatureFileName: file.name,
+        signaturePreview: previewUrl,
+      }));
+    }
+  };
+
+  const cboxQuantity = selectedBoxes.length;
+  const totalPowerAdapterQty = selectedBoxes.reduce(
+    (sum, item) => sum + Number(item.powerAdapterQty || 0),
+    0,
+  );
+  const totalGpsAntennaQty = selectedBoxes.reduce(
+    (sum, item) => sum + Number(item.gpsAntennaQty || 0),
+    0,
   );
 
-  useEffect(() => {
-    if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
+  const serialColumns = 3;
+  const serialRows = (() => {
+    const rows = [];
+    const perColumn = Math.max(
+      1,
+      Math.ceil(selectedBoxes.length / serialColumns),
+    );
+    for (let rowIndex = 0; rowIndex < perColumn; rowIndex += 1) {
+      const row = [];
+      for (let colIndex = 0; colIndex < serialColumns; colIndex += 1) {
+        const itemIndex = colIndex * perColumn + rowIndex;
+        const item = selectedBoxes[itemIndex];
+        row.push(
+          item
+            ? {
+                slNo: itemIndex + 1,
+                serial: item.boxSerialNumber,
+              }
+            : null,
+        );
+      }
+      rows.push(row);
     }
-  }, [currentPage, totalPages]);
+    return rows;
+  })();
+
+  const handleGeneratePdf = async () => {
+    if (!reportRef.current) return;
+
+    const element = reportRef.current;
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+    });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgWidth = pageWidth - 20;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+    pdf.save("PXE-Report.pdf");
+
+    // Clear all input fields after generating PDF
+    setIssuedBy({
+      name: "",
+      mobile: "",
+      company: "",
+      place: "",
+      date: "",
+      signatureFileName: "",
+      signaturePreview: "",
+    });
+    setReceivedBy({
+      name: "",
+      mobile: "",
+      company: "",
+      place: "",
+      date: "",
+      signatureFileName: "",
+      signaturePreview: "",
+    });
+    setSelectedBoxes([]);
+    localStorage.removeItem(SELECTED_BOXES_STORAGE_KEY);
+  };
 
   return (
     <div className="enterprise-page view-page">
       <div className="enterprise-container">
-      <div className="page-toolbar">
-        <div>
-          <p className="page-kicker">Inventory Control</p>
-          <h2 className="page-title">PXE Inventory List</h2>
-          <p className="page-subtitle">
-            Track box movement, serviceability, destinations, and operational remarks.
-          </p>
+        <div className="page-toolbar">
+          <div>
+            <p className="page-kicker">Inventory Control</p>
+            <h2 className="page-title">PXE Status Report</h2>
+            <p className="page-subtitle">
+              Fetch a box number, add it to the report, and build the issue
+              voucher.
+            </p>
+          </div>
         </div>
-        <div className="toolbar-actions">
-          <input
-            type="file"
-            ref={fileInputRef}
-            hidden
-            accept=".xlsx, .xls"
-            onChange={handleImportExcel}
-          />
-          {isAdmin && (
-            <>
+
+        <section className="enterprise-card lookup-card">
+          <div className="row g-3 align-items-end">
+            <div className="col-md-4">
+              <label className="filter-label">Box Number</label>
+              <input
+                className="form-control"
+                placeholder="Enter C-box serial number"
+                value={lookupSerial}
+                onChange={(e) => setLookupSerial(e.target.value)}
+              />
+            </div>
+            <div className="col-md-2 d-grid">
               <button
-                className="enterprise-btn enterprise-btn--warning"
-                onClick={() => fileInputRef.current.click()}
+                type="button"
+                className="btn btn-primary"
+                onClick={handleFetchBox}
               >
-                Import Excel
+                Fetch
               </button>
+            </div>
+            <div className="col-md-2 d-grid">
               <button
-                className="enterprise-btn enterprise-btn--primary"
-                onClick={() => navigate("/add")}
+                type="button"
+                className="btn btn-success"
+                onClick={handleAddBox}
               >
-                Add New PXE
+                Add
               </button>
-              <button
-                className="enterprise-btn enterprise-btn--secondary"
-                onClick={() => navigate("/register")}
-              >
-                User Management
-              </button>
-            </>
+            </div>
+          </div>
+          {fetchError && <p className="mt-3 text-danger">{fetchError}</p>}
+          {addError && <p className="mt-3 text-danger">{addError}</p>}
+          {addSuccess && (
+            <div
+              className="toast-message alert alert-success mt-3"
+              role="alert"
+            >
+              {addSuccess}
+            </div>
           )}
-          <button
-            className="enterprise-btn enterprise-btn--success"
-            onClick={exportToExcel}
-          >
-            Export Excel
-          </button>
-          <button
-            className="enterprise-btn enterprise-btn--danger"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
 
-      <div className="search-card enterprise-card">
-        <div className="row g-3">
-          <div className="col-md-3">
-            <label className="filter-label">Serial Number</label>
-            <input
-              name="serial"
-              className="form-control"
-              placeholder="Search..."
-              value={filters.serial}
-              onChange={handleFilterChange}
-            />
-          </div>
-          <div className="col-md-2">
-            <label className="filter-label">Filter Date</label>
-            <input
-              type="date"
-              name="date"
-              className="form-control"
-              value={filters.date}
-              onChange={handleFilterChange}
-            />
-          </div>
-          <div className="col-md-2">
-            <label className="filter-label">Action (Type)</label>
-            <select
-              name="type"
-              className="form-select"
-              value={filters.type}
-              onChange={handleFilterChange}
-            >
-              <option value="">All Actions</option>
-              {actionOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-3">
-            <label className="filter-label">To</label>
-            <input
-              name="to"
-              className="form-control"
-              placeholder="Destination..."
-              value={filters.to}
-              onChange={handleFilterChange}
-            />
-          </div>
-          <div className="col-md-2">
-            <label className="filter-label">State</label>
-            <select
-              name="state"
-              className="form-select"
-              value={filters.state}
-              onChange={handleFilterChange}
-            >
-              <option value="">All States</option>
-              <option value="SERVICEABLE">SERVICEABLE</option>
-              <option value="UN-SERVICEABLE">UN-SERVICEABLE</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="table-container enterprise-card">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0 custom-table">
-            <thead>
-              <tr className="text-center">
-                <th className="ps-4">S.No</th>
-                <SortableHeader label="Date" sortKey="date" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="PXE Serial Number" sortKey="pxeSerialNumber" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Type" sortKey="transactionType" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="From" sortKey="from" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="To" sortKey="to" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="State" sortKey="serviceState" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader
-                  label="Remarks"
-                  sortKey="remarks"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  className="remarks-column"
-                />
-                {isAdmin && <th className="pe-4">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={isAdmin ? "9" : "8"} className="text-center py-4">
-                    Loading...
-                  </td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={isAdmin ? "9" : "8"} className="text-center py-4 text-muted">
-                    No records match.
-                  </td>
-                </tr>
-              ) : (
-                paginatedUsers.map((user, index) => (
-                  <tr key={user._id || index} className="text-center">
-                    <td className="ps-4 fw-bold">{pageStartIndex + index + 1}</td>
-                    <td>{formatDateToDisplay(user.date)}</td>
-                    <td className="fw-semibold box-serial-name">
-                      {user.pxeSerialNumber}
-                    </td>
-                    <td>{getTypeBadge(user.transactionType)}</td>
-                    <td className="text-capitalize">{user.from}</td>
-                    <td className="text-capitalize">{user.to}</td>
-                    <td>{getStateBadge(user.serviceState)}</td>
-                    <td className="remarks-column">{user.remarks || "Ok"}</td>
-                    {isAdmin && (
-                      <td className="pe-4">
-                        <button
-                          className="table-action table-action--edit"
-                          onClick={() =>
-                            navigate("/add", { state: { userToEdit: user } })
-                          }
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="table-action table-action--delete"
-                          onClick={() => {
-                            if (window.confirm("Delete record?"))
-                              dispatch(deleteUserRequest(user._id));
-                          }}
-                        >
-                          Delete
-                        </button>
+          {fetchedBox && (
+            <div className="mt-4">
+              <h4>Fetched Box Details</h4>
+              <div className="table-responsive">
+                <table className="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Box Serial</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>To</th>
+                      <th>From</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        {fetchedBox.boxSerialNumber ||
+                          fetchedBox.serialNumber ||
+                          fetchedBox.pxeSerialNumber ||
+                          "N/A"}
                       </td>
-                    )}
+                      <td>
+                        {fetchedBox.boxStatus ||
+                          fetchedBox.serviceState ||
+                          fetchedBox.currentStatus ||
+                          "N/A"}
+                      </td>
+                      <td>
+                        {fetchedBox.date || fetchedBox.createdAt || "N/A"}
+                      </td>
+                      <td>
+                        {fetchedBox.transactionType ||
+                          fetchedBox.action ||
+                          "N/A"}
+                      </td>
+                      <td>
+                        {fetchedBox.toOffice ||
+                          fetchedBox.to ||
+                          fetchedBox.toLocation ||
+                          "N/A"}
+                      </td>
+                      <td>
+                        {fetchedBox.fromOffice || fetchedBox.from || "N/A"}
+                      </td>
+                      <td>
+                        {getBoxRemarkText(fetchedBox) || "N/A"}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {selectedBoxes.length > 0 && (
+            <div className="mt-4">
+              <h4>Selected Boxes</h4>
+              <div className="table-responsive">
+                <table className="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Box Serial</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>To</th>
+                      <th>From</th>
+                      <th>Nature of Fault / Remarks</th>
+                      <th>Power Adapter Qty</th>
+                      <th>GPS Antenna Qty</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedBoxes.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.boxSerialNumber}</td>
+                        <td>{item.status}</td>
+                        <td>{item.date}</td>
+                        <td>{item.type}</td>
+                        <td>{item.to}</td>
+                        <td>{item.from}</td>
+                        <td>{item.remarks || "N/A"}</td>
+                        <td>
+                          <input
+                            type="number"
+                            className="form-control"
+                            min="0"
+                            value={item.powerAdapterQty ?? 0}
+                            onChange={(e) =>
+                              updateBoxQuantity(
+                                item.id,
+                                "powerAdapterQty",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="form-control"
+                            min="0"
+                            value={item.gpsAntennaQty ?? 0}
+                            onChange={(e) =>
+                              updateBoxQuantity(
+                                item.id,
+                                "gpsAntennaQty",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleRemoveBox(item.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <div ref={reportRef}>
+          <section className="enterprise-card lookup-card mt-4 report-voucher">
+            <div className="report-header-top d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+              <div className="report-left">
+                <img
+                  src="/OIP (1).webp"
+                  alt="CDAC logo"
+                  className="report-logo-cdac"
+                />
+                <div className="company-info mt-2">
+                  <h6 className="company-name mb-1">
+                    Centre for Development of Advanced Computing
+                  </h6>
+                  <p
+                    className="company-address mb-0"
+                    style={{ fontSize: "0.7rem", lineHeight: "1.4" }}
+                  >
+                    Tidel Park, 8th Floor,
+                    <br />
+                    'D' Block(North &amp; South),
+                    <br />
+                    No.4 Rajiv Gandhi Salai, Taramani,
+                    <br />
+                    Chennai- 600113, Tamilnadu (India)
+                    <br />
+                    Phone: +91-44-22542226/7 / Fax: +91-44-22542294
+                  </p>
+                </div>
+              </div>
+              <div className="report-right text-end">
+                <h4 className="delivery-challan">DELIVERY CHALLAN</h4>
+                <p className="challan-ref">CGPL-DCD31720206</p>
+              </div>
+            </div>
+            <div className="text-center mb-4">
+              <h3 className="voucher-title">ISSUE VOUCHER FOR NG-PXE SERVER</h3>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table table-bordered report-table mb-4">
+                <thead>
+                  <tr>
+                    <th>S No</th>
+                    <th>Item</th>
+                    <th>Denomination of Qty</th>
+                    <th>QTY</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>01</td>
+                    <td>C-Box</td>
+                    <td>EACH</td>
+                    <td>{cboxQuantity || 0}</td>
+                  </tr>
+                  <tr>
+                    <td>02</td>
+                    <td>Power Adapter</td>
+                    <td>EACH</td>
+                    <td>{totalPowerAdapterQty || 0}</td>
+                  </tr>
+                  <tr>
+                    <td>03</td>
+                    <td>GPS Antenna</td>
+                    <td>EACH</td>
+                    <td>{totalGpsAntennaQty || 0}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mb-4">
+              <h5 className="mb-3">SERIAL NUMBER OF C-BOX RECEIVED</h5>
+              <div className="table-responsive mb-3">
+                <table className="table table-bordered report-table">
+                  <thead>
+                    <tr>
+                      <th>Box Serial</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>To</th>
+                      <th>From</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedBoxes.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.boxSerialNumber}</td>
+                        <td>{item.status}</td>
+                        <td>{item.date}</td>
+                        <td>{item.type}</td>
+                        <td>{item.to}</td>
+                        <td>{item.from}</td>
+                        <td>{item.remarks || "N/A"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="row g-4 mb-4">
+              <div className="col-md-6">
+                <h5>Issued By</h5>
+                <div className="report-field">
+                  <label>Name</label>
+                  <input
+                    className="form-control report-input"
+                    value={issuedBy.name}
+                    onChange={(e) => updateIssuedBy("name", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Signature</label>
+                  <div className="signature-space"></div>
+                </div>
+                <div className="report-field">
+                  <label>Mob No.</label>
+                  <input
+                    className="form-control report-input"
+                    value={issuedBy.mobile}
+                    onChange={(e) => updateIssuedBy("mobile", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Name of Company</label>
+                  <input
+                    className="form-control report-input"
+                    value={issuedBy.company}
+                    onChange={(e) => updateIssuedBy("company", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Place</label>
+                  <input
+                    className="form-control report-input"
+                    value={issuedBy.place}
+                    onChange={(e) => updateIssuedBy("place", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    className="form-control report-input"
+                    value={issuedBy.date}
+                    onChange={(e) => updateIssuedBy("date", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="col-md-6">
+                <h5>Received By</h5>
+                <div className="report-field">
+                  <label>Name</label>
+                  <input
+                    className="form-control report-input"
+                    value={receivedBy.name}
+                    onChange={(e) => updateReceivedBy("name", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Signature</label>
+                  <div className="signature-space"></div>
+                </div>
+                <div className="report-field">
+                  <label>Mob No.</label>
+                  <input
+                    className="form-control report-input"
+                    value={receivedBy.mobile}
+                    onChange={(e) => updateReceivedBy("mobile", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Name of Company</label>
+                  <input
+                    className="form-control report-input"
+                    value={receivedBy.company}
+                    onChange={(e) =>
+                      updateReceivedBy("company", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Place</label>
+                  <input
+                    className="form-control report-input"
+                    value={receivedBy.place}
+                    onChange={(e) => updateReceivedBy("place", e.target.value)}
+                  />
+                </div>
+                <div className="report-field">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    className="form-control report-input"
+                    value={receivedBy.date}
+                    onChange={(e) => updateReceivedBy("date", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      </div>
-      {filteredUsers.length > recordsPerPage && (
-        <div className="pagination-bar" aria-label="PXE inventory pagination">
+        <div className="d-flex justify-content-end mt-3">
           <button
             type="button"
-            className="pagination-btn"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+            className="btn btn-primary"
+            onClick={handleGeneratePdf}
           >
-            Previous
-          </button>
-          <div className="pagination-pages">
-            {Array.from({ length: totalPages }, (_, index) => {
-              const pageNumber = index + 1;
-              return (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  className={`pagination-page ${
-                    currentPage === pageNumber ? "is-active" : ""
-                  }`}
-                  aria-current={currentPage === pageNumber ? "page" : undefined}
-                  onClick={() => setCurrentPage(pageNumber)}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            className="pagination-btn"
-            disabled={currentPage === totalPages}
-            onClick={() =>
-              setCurrentPage((page) => Math.min(page + 1, totalPages))
-            }
-          >
-            Next
+            Generate Report
           </button>
         </div>
-      )}
       </div>
     </div>
   );

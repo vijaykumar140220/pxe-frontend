@@ -86,7 +86,8 @@ const Header = () => {
   const handlePasswordChange = (event) => {
     const { name, value } = event.target;
     setPasswordForm((current) => ({ ...current, [name]: value }));
-    if (passwordErrors[name]) setPasswordErrors((current) => ({ ...current, [name]: "" }));
+    if (passwordErrors[name])
+      setPasswordErrors((current) => ({ ...current, [name]: "" }));
   };
 
   const handleResetPassword = async (event) => {
@@ -106,20 +107,28 @@ const Header = () => {
       if (!mongoIdPattern.test(String(authUserId || ""))) {
         const response = await axios.get("http://127.0.0.1:5000/auth/users");
         authUser = response.data?.find(
-          (user) => user.email?.toLowerCase() === currentUser.email.toLowerCase(),
+          (user) =>
+            user.email?.toLowerCase() === currentUser.email.toLowerCase(),
         );
         authUserId = authUser?._id;
       }
 
       if (!authUserId) {
-        toast.error("Unable to find this user in auth collection. Please login again.");
+        toast.error(
+          "Unable to find this user in auth collection. Please login again.",
+        );
         return;
       }
 
       try {
-        await axios.put(`http://127.0.0.1:5000/auth/users/${authUserId}/password`, passwordForm);
+        await axios.put(
+          `http://127.0.0.1:5000/auth/users/${authUserId}/password`,
+          passwordForm,
+        );
       } catch (error) {
-        const message = String(error.response?.data?.message || error.response?.data || "");
+        const message = String(
+          error.response?.data?.message || error.response?.data || "",
+        );
 
         if (error.response?.status !== 404 && !message.includes("Cannot PUT")) {
           throw error;
@@ -130,39 +139,52 @@ const Header = () => {
           authUser = response.data?.find((user) => user._id === authUserId);
         }
 
-        const fallbackResponse = await axios.put(`http://127.0.0.1:5000/auth/users/${authUserId}`, {
-          name: authUser?.name || currentUser.username,
-          employeeId: authUser?.employeeId || currentUser.employeeId,
-          email: authUser?.email || currentUser.email,
-          mobile: authUser?.mobile || "",
-          department: authUser?.department || currentUser.department,
-          designation: authUser?.designation || currentUser.designation,
-          role: authUser?.role || currentUser.role?.toLowerCase(),
-          changePasswordOnly: true,
-          ...passwordForm,
-        });
+        const fallbackResponse = await axios.put(
+          `http://127.0.0.1:5000/auth/users/${authUserId}`,
+          {
+            name: authUser?.name || currentUser.username,
+            employeeId: authUser?.employeeId || currentUser.employeeId,
+            email: authUser?.email || currentUser.email,
+            mobile: authUser?.mobile || "",
+            department: authUser?.department || currentUser.department,
+            designation: authUser?.designation || currentUser.designation,
+            role: authUser?.role || currentUser.role?.toLowerCase(),
+            changePasswordOnly: true,
+            ...passwordForm,
+          },
+        );
 
-        if (fallbackResponse.data?.message !== "Password changed successfully") {
-          throw new Error("Password route is not active. Please restart the backend server.");
+        if (
+          fallbackResponse.data?.message !== "Password changed successfully"
+        ) {
+          throw new Error(
+            "Password route is not active. Please restart the backend server.",
+          );
         }
       }
 
       toast.success("Password changed successfully");
       closeResetPassword();
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || "Unable to change password");
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Unable to change password",
+      );
     } finally {
       setSavingPassword(false);
     }
   };
 
   return (
-    <header className={`app-header ${isAuthenticated ? "app-header--secure" : ""}`}>
+    <header
+      className={`app-header ${isAuthenticated ? "app-header--secure" : ""}`}
+    >
       <div className="app-header__inner">
         <Logo />
         <div className="app-header__copy">
-          <p className="app-header__eyebrow">Enterprise Inventory Management</p>
-          <h1>PXE - BOX MANAGEMENT SYSTEM</h1>
+          <p className="app-header__eyebrow">NG-PXE Inventory Management</p>
+          <h1>NG-PXE INVENTORY MANAGEMENT SYSTEM</h1>
         </div>
         <div className="app-header__actions">
           {isAuthenticated ? (
@@ -187,7 +209,12 @@ const Header = () => {
               </div>
               <div className="header-profile">
                 <span>{currentUser?.username || "User"}</span>
-                <strong><FiShield /> {currentUser?.role === "ADMIN" ? "Administrator" : "Authorized User"}</strong>
+                <strong>
+                  <FiShield />{" "}
+                  {currentUser?.role === "ADMIN"
+                    ? "Administrator"
+                    : "Authorized User"}
+                </strong>
               </div>
               <button
                 type="button"
@@ -205,19 +232,36 @@ const Header = () => {
       {isAuthenticated && (
         <div className="government-security-bar">
           <FiShield />
-          <span>Authorized Personnel Only. All activities are monitored and audited.</span>
-         
+          <span>
+            Authorized Personnel Only. All activities are monitored and audited.
+          </span>
         </div>
       )}
       {resetOpen && (
-        <div className="password-modal" role="dialog" aria-modal="true" aria-label="Reset password">
-          <form className="password-card" onSubmit={handleResetPassword} noValidate>
+        <div
+          className="password-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reset password"
+        >
+          <form
+            className="password-card"
+            onSubmit={handleResetPassword}
+            noValidate
+          >
             <div className="password-card__header">
               <div>
                 <h3>Reset Password</h3>
-                <p>Enter the password created by admin, then set your new password.</p>
+                <p>
+                  Enter the password created by admin, then set your new
+                  password.
+                </p>
               </div>
-              <button type="button" aria-label="Close reset password" onClick={closeResetPassword}>
+              <button
+                type="button"
+                aria-label="Close reset password"
+                onClick={closeResetPassword}
+              >
                 <FiX />
               </button>
             </div>
@@ -245,10 +289,18 @@ const Header = () => {
             />
 
             <div className="password-card__actions">
-              <button type="button" className="enterprise-btn enterprise-btn--secondary" onClick={closeResetPassword}>
+              <button
+                type="button"
+                className="enterprise-btn enterprise-btn--secondary"
+                onClick={closeResetPassword}
+              >
                 Cancel
               </button>
-              <button type="submit" className="enterprise-btn enterprise-btn--primary" disabled={savingPassword}>
+              <button
+                type="submit"
+                className="enterprise-btn enterprise-btn--primary"
+                disabled={savingPassword}
+              >
                 Change Password
               </button>
             </div>

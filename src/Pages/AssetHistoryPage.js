@@ -5,11 +5,14 @@ import {
   FiActivity,
   FiBox,
   FiClock,
+  FiEdit2,
   FiMapPin,
   FiRefreshCw,
   FiSearch,
+  FiTrash2,
 } from "react-icons/fi";
 import SortableHeader from "../Components/SortableHeader";
+import { useAuth } from "../Context/AuthContext";
 import { nextSortConfig, sortTableRows } from "../utils/tableSort";
 import "./AssetHistoryPage.css";
 
@@ -61,6 +64,7 @@ const columns = [
 ];
 
 const AssetHistoryPage = () => {
+  const { currentUser } = useAuth();
   const [serialInput, setSerialInput] = useState("");
   const [searchedSerial, setSearchedSerial] = useState("");
   const [records, setRecords] = useState([]);
@@ -69,15 +73,27 @@ const AssetHistoryPage = () => {
     key: "date",
     direction: "asc",
   });
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingRecord, setSavingRecord] = useState(false);
+
+  const isAdmin = currentUser?.role?.toUpperCase() === "ADMIN";
 
   const chronologicalHistory = useMemo(() => {
     const serial = normalizeSerial(searchedSerial);
     if (!serial) return [];
-    return sortHistory(records.filter((record) => normalizeSerial(record.boxSerialNumber) === serial));
+    return sortHistory(
+      records.filter(
+        (record) => normalizeSerial(record.boxSerialNumber) === serial,
+      ),
+    );
   }, [records, searchedSerial]);
 
   const history = useMemo(
-    () => sortTableRows(chronologicalHistory, sortConfig, (record, key) => displayValue(record[key])),
+    () =>
+      sortTableRows(chronologicalHistory, sortConfig, (record, key) =>
+        displayValue(record[key]),
+      ),
     [chronologicalHistory, sortConfig],
   );
 
@@ -101,7 +117,9 @@ const AssetHistoryPage = () => {
       setRecords(Array.isArray(response.data) ? response.data : []);
       setSearchedSerial(normalizedSerial);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to load asset history");
+      toast.error(
+        error.response?.data?.message || "Unable to load asset history",
+      );
     } finally {
       setLoading(false);
     }
@@ -121,6 +139,70 @@ const AssetHistoryPage = () => {
     loadHistory(searchedSerial);
   };
 
+  const openEditDialog = (record) => {
+    setEditingRecord(record);
+    setEditForm({
+      transactionType: record.transactionType || "",
+      fromName: record.fromName || "",
+      fromOffice: record.fromOffice || "",
+      fromLocation: record.fromLocation || "",
+      toName: record.toName || "",
+      toOffice: record.toOffice || "",
+      toLocation: record.toLocation || "",
+      boxStatus: record.boxStatus || "",
+      remarks: record.remarks || "",
+    });
+  };
+
+  const closeEditDialog = () => {
+    setEditingRecord(null);
+    setEditForm({});
+  };
+
+  const handleEditFieldChange = (event) => {
+    const { name, value } = event.target;
+    setEditForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSaveEdit = async (event) => {
+    event.preventDefault();
+    if (!editingRecord?._id) return;
+
+    try {
+      setSavingRecord(true);
+      await axios.put(`${API_URL}/${editingRecord._id}`, editForm);
+      toast.success("Transaction updated");
+      closeEditDialog();
+      loadHistory(searchedSerial);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Unable to update transaction",
+      );
+    } finally {
+      setSavingRecord(false);
+    }
+  };
+
+  const handleDelete = async (record) => {
+    if (!record?._id) return;
+    if (
+      !window.confirm(
+        `Delete transaction ${record.boxSerialNumber || "this record"}?`,
+      )
+    )
+      return;
+
+    try {
+      await axios.delete(`${API_URL}/${record._id}`);
+      toast.success("Transaction deleted");
+      loadHistory(searchedSerial);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Unable to delete transaction",
+      );
+    }
+  };
+
   return (
     <div className="enterprise-page asset-history-page">
       <div className="enterprise-container">
@@ -129,7 +211,8 @@ const AssetHistoryPage = () => {
             <p className="page-kicker">Asset History</p>
             <h2 className="page-title">PXE Box Complete Transaction History</h2>
             <p className="page-subtitle">
-              Search by box serial number to review purchase, issue, receipt, location and status changes.
+              Search by box serial number to review purchase, issue, receipt,
+              location and status changes.
             </p>
           </div>
           <div className="toolbar-actions">
@@ -139,12 +222,17 @@ const AssetHistoryPage = () => {
               onClick={refreshHistory}
               disabled={loading}
             >
-              <FiRefreshCw className={loading ? "asset-history-spin" : ""} /> Refresh
+              <FiRefreshCw className={loading ? "asset-history-spin" : ""} />{" "}
+              Refresh
             </button>
           </div>
         </div>
 
-        <form id="asset-history-search" className="enterprise-card asset-history-search" onSubmit={handleSearch}>
+        <form
+          id="asset-history-search"
+          className="enterprise-card asset-history-search"
+          onSubmit={handleSearch}
+        >
           <label>
             <span>Enter Serial Number</span>
             <input
@@ -153,7 +241,11 @@ const AssetHistoryPage = () => {
               placeholder="BOSS-CBOX0024"
             />
           </label>
-          <button type="submit" className="enterprise-btn enterprise-btn--primary" disabled={loading}>
+          <button
+            type="submit"
+            className="enterprise-btn enterprise-btn--primary"
+            disabled={loading}
+          >
             <FiSearch /> Search
           </button>
         </form>
@@ -178,7 +270,9 @@ const AssetHistoryPage = () => {
               <FiMapPin />
               <div>
                 <span>Current Location</span>
-                <strong>{displayValue(latestRecord?.toLocation) || "N/A"}</strong>
+                <strong>
+                  {displayValue(latestRecord?.toLocation) || "N/A"}
+                </strong>
               </div>
             </article>
             <article className="enterprise-card asset-history-stat asset-history-stat--amber">
@@ -217,19 +311,29 @@ const AssetHistoryPage = () => {
                       onSort={handleSort}
                     />
                   ))}
+                  {isAdmin && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="12" className="asset-history-empty">Loading asset history...</td>
+                    <td colSpan="12" className="asset-history-empty">
+                      Loading asset history...
+                    </td>
                   </tr>
                 ) : searchedSerial && history.length ? (
                   history.map((record, index) => (
-                    <tr key={record._id || `${record.boxSerialNumber}-${record.date}-${index}`}>
+                    <tr
+                      key={
+                        record._id ||
+                        `${record.boxSerialNumber}-${record.date}-${index}`
+                      }
+                    >
                       <td>{index + 1}</td>
                       <td>{formatDate(record.date)}</td>
-                      <td><strong>{displayValue(record.boxSerialNumber)}</strong></td>
+                      <td>
+                        <strong>{displayValue(record.boxSerialNumber)}</strong>
+                      </td>
                       <td>{displayValue(record.transactionType) || "N/A"}</td>
                       <td>{displayValue(record.fromName) || "N/A"}</td>
                       <td>{displayValue(record.fromOffice) || "N/A"}</td>
@@ -237,8 +341,36 @@ const AssetHistoryPage = () => {
                       <td>{displayValue(record.toName) || "N/A"}</td>
                       <td>{displayValue(record.toOffice) || "N/A"}</td>
                       <td>{displayValue(record.toLocation) || "N/A"}</td>
-                      <td><span className="asset-history-status">{displayValue(record.boxStatus) || "N/A"}</span></td>
+                      <td>
+                        <span className="asset-history-status">
+                          {displayValue(record.boxStatus) || "N/A"}
+                        </span>
+                      </td>
                       <td>{displayValue(record.remarks) || "N/A"}</td>
+                      {isAdmin && (
+                        <td>
+                          <div className="d-flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary asset-history-action"
+                              title="Edit transaction"
+                              aria-label={`Edit ${record.boxSerialNumber || "transaction"}`}
+                              onClick={() => openEditDialog(record)}
+                            >
+                              <FiEdit2 />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger asset-history-action"
+                              title="Delete transaction"
+                              aria-label={`Delete ${record.boxSerialNumber || "transaction"}`}
+                              onClick={() => handleDelete(record)}
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : searchedSerial ? (
@@ -250,7 +382,8 @@ const AssetHistoryPage = () => {
                 ) : (
                   <tr>
                     <td colSpan="12" className="asset-history-empty">
-                      Search a box serial number to view complete transaction history.
+                      Search a box serial number to view complete transaction
+                      history.
                     </td>
                   </tr>
                 )}
@@ -258,6 +391,131 @@ const AssetHistoryPage = () => {
             </table>
           </div>
         </section>
+
+        {editingRecord && (
+          <div
+            className="modal d-block"
+            tabIndex="-1"
+            role="dialog"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div className="modal-dialog modal-lg" role="document">
+              <div className="modal-content">
+                <form onSubmit={handleSaveEdit}>
+                  <div className="modal-header">
+                    <h5 className="modal-title">Edit Transaction</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      aria-label="Close"
+                      onClick={closeEditDialog}
+                    ></button>
+                  </div>
+                  <div className="modal-body row g-3">
+                    <div className="col-md-6">
+                      <label className="form-label">Transaction Type</label>
+                      <input
+                        className="form-control"
+                        name="transactionType"
+                        value={editForm.transactionType || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">From Name</label>
+                      <input
+                        className="form-control"
+                        name="fromName"
+                        value={editForm.fromName || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">From Office</label>
+                      <input
+                        className="form-control"
+                        name="fromOffice"
+                        value={editForm.fromOffice || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">From Location</label>
+                      <input
+                        className="form-control"
+                        name="fromLocation"
+                        value={editForm.fromLocation || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">To Name</label>
+                      <input
+                        className="form-control"
+                        name="toName"
+                        value={editForm.toName || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">To Office</label>
+                      <input
+                        className="form-control"
+                        name="toOffice"
+                        value={editForm.toOffice || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">To Location</label>
+                      <input
+                        className="form-control"
+                        name="toLocation"
+                        value={editForm.toLocation || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Box Status</label>
+                      <input
+                        className="form-control"
+                        name="boxStatus"
+                        value={editForm.boxStatus || ""}
+                        onChange={handleEditFieldChange}
+                      />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label">Remarks</label>
+                      <textarea
+                        className="form-control"
+                        name="remarks"
+                        rows="3"
+                        value={editForm.remarks || ""}
+                        onChange={handleEditFieldChange}
+                      ></textarea>
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={closeEditDialog}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={savingRecord}
+                    >
+                      {savingRecord ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

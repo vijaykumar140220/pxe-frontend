@@ -26,7 +26,14 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 
 const INACTIVITY_LIMIT = 60 * 60 * 1000;
-const ACTIVITY_EVENTS = ["click", "keydown", "mousedown", "mousemove", "scroll", "touchstart"];
+const ACTIVITY_EVENTS = [
+  "click",
+  "keydown",
+  "mousedown",
+  "mousemove",
+  "scroll",
+  "touchstart",
+];
 
 const AppContent = () => {
   const dispatch = useDispatch();
@@ -92,7 +99,9 @@ const AppContent = () => {
   return (
     <div className="App">
       <Header />
-      <div className={`app-shell ${isAuthenticated ? "app-shell--with-sidebar" : ""}`}>
+      <div
+        className={`app-shell ${isAuthenticated ? "app-shell--with-sidebar" : ""}`}
+      >
         {isAuthenticated && <Sidebar />}
         <main className="app-main">
           <Routes>
@@ -223,4 +232,3 @@ function App() {
 }
 
 export default App;
-

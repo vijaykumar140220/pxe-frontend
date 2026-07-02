@@ -3,6 +3,8 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
 import SortableHeader from "../Components/SortableHeader";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { useAuth } from "../Context/AuthContext";
 import { nextSortConfig, sortTableRows } from "../utils/tableSort";
 import {
   BOX_SERIAL_INPUT_PATTERN,
@@ -41,7 +43,7 @@ const columns = [
   { key: "toOffice", label: "To (Office)" },
   { key: "toLocation", label: "To (Location)" },
   { key: "boxStatus", label: "Box Status" },
-  { key: "remarks", label: "Remarks" },
+  { key: "remarks", label: "Nature of Fault / Remarks" },
 ];
 
 const fieldPlaceholders = {
@@ -55,7 +57,7 @@ const fieldPlaceholders = {
   toOffice: "Select destination office",
   toLocation: "Select destination location",
   boxStatus: "Select box status",
-  remarks: "Enter remarks",
+  remarks: "Enter nature of fault / remarks",
 };
 
 const transactionTypes = ["PURCHASE", "ISSUE", "RECEIPT", "ON LOAN"];
@@ -219,26 +221,44 @@ const formatExcelDate = (value) => {
     : parsed.toISOString().split("T")[0];
 };
 
-const blankForImport = (value) => (String(value || "").trim() ? value : importBlankValue);
+const blankForImport = (value) =>
+  String(value || "").trim() ? value : importBlankValue;
 
 const normalizeExcelRow = (row) => {
   const date = formatExcelDate(getCellValue(row, ["Date"]));
   const boxSerialNumber = String(
-    getCellValue(row, ["Box Serial Number", "Serial Number", "PXE Serial Number", "Box Serial No"]),
+    getCellValue(row, [
+      "Box Serial Number",
+      "Serial Number",
+      "PXE Serial Number",
+      "Box Serial No",
+    ]),
   ).trim();
-  const transactionType = String(getCellValue(row, ["Transaction Type", "Type", "Action"])).trim();
+  const transactionType = String(
+    getCellValue(row, ["Transaction Type", "Type", "Action"]),
+  ).trim();
 
   return {
     date: blankForImport(date),
     boxSerialNumber: blankForImport(boxSerialNumber),
     transactionType: blankForImport(transactionType),
-    fromName: String(getCellValue(row, ["From (Name)", "From Name", "From"])).trim(),
-    fromOffice: String(getCellValue(row, ["From (Office)", "From Office"])).trim(),
-    fromLocation: String(getCellValue(row, ["From (Location)", "From Location", "Location"])).trim(),
+    fromName: String(
+      getCellValue(row, ["From (Name)", "From Name", "From"]),
+    ).trim(),
+    fromOffice: String(
+      getCellValue(row, ["From (Office)", "From Office"]),
+    ).trim(),
+    fromLocation: String(
+      getCellValue(row, ["From (Location)", "From Location", "Location"]),
+    ).trim(),
     toName: String(getCellValue(row, ["To (Name)", "To Name", "To"])).trim(),
     toOffice: String(getCellValue(row, ["To (Office)", "To Office"])).trim(),
-    toLocation: String(getCellValue(row, ["To (Location)", "To Location"])).trim(),
-    boxStatus: String(getCellValue(row, ["Box Status", "Status", "Service State"])).trim(),
+    toLocation: String(
+      getCellValue(row, ["To (Location)", "To Location"]),
+    ).trim(),
+    boxStatus: String(
+      getCellValue(row, ["Box Status", "Status", "Service State"]),
+    ).trim(),
     remarks: String(getCellValue(row, ["Remarks", "Remark", "Notes"])).trim(),
   };
 };
@@ -260,25 +280,35 @@ const formatDate = (value) => {
 const TransactionRegisterPage = () => {
   const fileInputRef = useRef(null);
   const [form, setForm] = useState(initialForm);
+  const { currentUser } = useAuth();
   const [records, setRecords] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
-  const [locationOptions, setLocationOptions] = useState(defaultLocationOptions);
+  const [locationOptions, setLocationOptions] = useState(
+    defaultLocationOptions,
+  );
   const [newLocation, setNewLocation] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "date",
     direction: "desc",
   });
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingRecord, setSavingRecord] = useState(false);
+
+  const isAdmin = currentUser?.role?.toUpperCase() === "ADMIN";
 
   const fetchRecords = async () => {
     try {
       const response = await axios.get(API_URL);
       setRecords(response.data);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to load transaction register");
+      toast.error(
+        error.response?.data?.message || "Unable to load transaction register",
+      );
     }
   };
 
@@ -287,15 +317,89 @@ const TransactionRegisterPage = () => {
   }, []);
 
   const sortedRecords = useMemo(
-    () => sortTableRows(records, sortConfig, (record, key) => displayValue(record[key])),
+    () =>
+      sortTableRows(records, sortConfig, (record, key) =>
+        displayValue(record[key]),
+      ),
     [records, sortConfig],
   );
-  const totalPages = Math.max(1, Math.ceil(sortedRecords.length / recordsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedRecords.length / recordsPerPage),
+  );
   const pageStartIndex = (currentPage - 1) * recordsPerPage;
   const paginatedRecords = useMemo(
     () => sortedRecords.slice(pageStartIndex, pageStartIndex + recordsPerPage),
     [sortedRecords, pageStartIndex, recordsPerPage],
   );
+  const tableColSpan = 12 + (isAdmin ? 1 : 0);
+
+  const openEditDialog = (record) => {
+    setEditingRecord(record);
+    setEditForm({
+      date: record.date || "",
+      boxSerialNumber: record.boxSerialNumber || "",
+      transactionType: record.transactionType || "",
+      fromName: record.fromName || "",
+      fromOffice: record.fromOffice || "",
+      fromLocation: record.fromLocation || "",
+      toName: record.toName || "",
+      toOffice: record.toOffice || "",
+      toLocation: record.toLocation || "",
+      boxStatus: record.boxStatus || "",
+      remarks: record.remarks || "",
+    });
+  };
+
+  const closeEditDialog = () => {
+    setEditingRecord(null);
+    setEditForm({});
+  };
+
+  const handleEditFieldChange = (event) => {
+    const { name, value } = event.target;
+    setEditForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSaveEdit = async (event) => {
+    event.preventDefault();
+    if (!editingRecord?._id) return;
+
+    try {
+      setSavingRecord(true);
+      await axios.put(`${API_URL}/${editingRecord._id}`, editForm);
+      toast.success("Transaction updated");
+      closeEditDialog();
+      fetchRecords();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Unable to update transaction",
+      );
+    } finally {
+      setSavingRecord(false);
+    }
+  };
+
+  const handleDelete = async (record) => {
+    if (!record?._id) return;
+    if (
+      !window.confirm(
+        `Delete transaction ${record.boxSerialNumber || "this record"}?`,
+      )
+    )
+      return;
+
+    try {
+      await axios.delete(`${API_URL}/${record._id}`);
+      toast.success("Transaction deleted");
+      if (editingRecord?._id === record._id) closeEditDialog();
+      fetchRecords();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Unable to delete transaction",
+      );
+    }
+  };
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -304,9 +408,13 @@ const TransactionRegisterPage = () => {
   const validateForm = () => {
     const nextErrors = {};
     columns.forEach(({ key, label, required }) => {
-      if (required && !String(form[key]).trim()) nextErrors[key] = `${label} is required`;
+      if (required && !String(form[key]).trim())
+        nextErrors[key] = `${label} is required`;
     });
-    if (form.boxSerialNumber.trim() && !isValidBoxSerial(form.boxSerialNumber)) {
+    if (
+      form.boxSerialNumber.trim() &&
+      !isValidBoxSerial(form.boxSerialNumber)
+    ) {
       nextErrors.boxSerialNumber = BOX_SERIAL_PATTERN_TEXT;
     }
     setErrors(nextErrors);
@@ -352,7 +460,9 @@ const TransactionRegisterPage = () => {
       setForm(initialForm);
       fetchRecords();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to save transaction");
+      toast.error(
+        error.response?.data?.message || "Unable to save transaction",
+      );
     } finally {
       setLoading(false);
     }
@@ -386,7 +496,11 @@ const TransactionRegisterPage = () => {
         toast.success(`${payload.length} transaction records imported`);
         fetchRecords();
       } catch (error) {
-        toast.error(error.response?.data?.message || error.message || "Excel import failed");
+        toast.error(
+          error.response?.data?.message ||
+            error.message ||
+            "Excel import failed",
+        );
       } finally {
         event.target.value = null;
       }
@@ -412,7 +526,7 @@ const TransactionRegisterPage = () => {
       "To (Office)": displayValue(record.toOffice),
       "To (Location)": displayValue(record.toLocation),
       "Box Status": displayValue(record.boxStatus),
-      Remarks: displayValue(record.remarks),
+      "Nature of Fault / Remarks": displayValue(record.remarks),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
@@ -430,7 +544,8 @@ const TransactionRegisterPage = () => {
             <p className="page-kicker">Transaction Register</p>
             <h2 className="page-title">PXE Box Transaction Register</h2>
             <p className="page-subtitle">
-              Record purchase, issue, receipt, and transfer transactions for each box.
+              Record purchase, issue, receipt, and transfer transactions for
+              each box.
             </p>
           </div>
           <div className="toolbar-actions">
@@ -466,7 +581,11 @@ const TransactionRegisterPage = () => {
         </div>
 
         {showForm && (
-          <form className="enterprise-card transaction-form" onSubmit={handleSubmit} noValidate>
+          <form
+            className="enterprise-card transaction-form"
+            onSubmit={handleSubmit}
+            noValidate
+          >
             <div className="location-add-row">
               <label>Add Location</label>
               <input
@@ -493,7 +612,11 @@ const TransactionRegisterPage = () => {
                 <div className="transaction-field" key={key}>
                   <label>{label}</label>
                   {key === "transactionType" ? (
-                    <select name={key} value={form[key]} onChange={handleChange}>
+                    <select
+                      name={key}
+                      value={form[key]}
+                      onChange={handleChange}
+                    >
                       <option value="">Select type</option>
                       {transactionTypes.map((type) => (
                         <option key={type} value={type}>
@@ -502,7 +625,11 @@ const TransactionRegisterPage = () => {
                       ))}
                     </select>
                   ) : key === "fromOffice" || key === "toOffice" ? (
-                    <select name={key} value={form[key]} onChange={handleChange}>
+                    <select
+                      name={key}
+                      value={form[key]}
+                      onChange={handleChange}
+                    >
                       <option value="">Select office</option>
                       {officeOptions.map((office) => (
                         <option key={office} value={office}>
@@ -511,7 +638,11 @@ const TransactionRegisterPage = () => {
                       ))}
                     </select>
                   ) : key === "fromLocation" || key === "toLocation" ? (
-                    <select name={key} value={form[key]} onChange={handleChange}>
+                    <select
+                      name={key}
+                      value={form[key]}
+                      onChange={handleChange}
+                    >
                       <option value="">Select location</option>
                       {locationOptions.map((location) => (
                         <option key={location} value={location}>
@@ -520,7 +651,11 @@ const TransactionRegisterPage = () => {
                       ))}
                     </select>
                   ) : key === "boxStatus" ? (
-                    <select name={key} value={form[key]} onChange={handleChange}>
+                    <select
+                      name={key}
+                      value={form[key]}
+                      onChange={handleChange}
+                    >
                       <option value="">Select status</option>
                       {boxStatuses.map((status) => (
                         <option key={status} value={status}>
@@ -535,8 +670,16 @@ const TransactionRegisterPage = () => {
                       value={form[key]}
                       onChange={handleChange}
                       placeholder={fieldPlaceholders[key]}
-                      pattern={key === "boxSerialNumber" ? BOX_SERIAL_INPUT_PATTERN : undefined}
-                      title={key === "boxSerialNumber" ? BOX_SERIAL_PATTERN_TEXT : undefined}
+                      pattern={
+                        key === "boxSerialNumber"
+                          ? BOX_SERIAL_INPUT_PATTERN
+                          : undefined
+                      }
+                      title={
+                        key === "boxSerialNumber"
+                          ? BOX_SERIAL_PATTERN_TEXT
+                          : undefined
+                      }
                     />
                   )}
                   {errors[key] && <p>{errors[key]}</p>}
@@ -605,21 +748,29 @@ const TransactionRegisterPage = () => {
                       className={key === "remarks" ? "remarks-column" : ""}
                     />
                   ))}
+                  {isAdmin && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {records.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="text-center py-4 text-muted">
+                    <td
+                      colSpan={tableColSpan}
+                      className="text-center py-4 text-muted"
+                    >
                       No transaction records found.
                     </td>
                   </tr>
                 ) : (
                   paginatedRecords.map((record, index) => (
-                    <tr key={record._id || `${record.boxSerialNumber}-${index}`}>
+                    <tr
+                      key={record._id || `${record.boxSerialNumber}-${index}`}
+                    >
                       <td>{pageStartIndex + index + 1}</td>
                       <td>{formatDate(record.date)}</td>
-                      <td className="fw-semibold box-serial-name">{displayValue(record.boxSerialNumber)}</td>
+                      <td className="fw-semibold box-serial-name">
+                        {displayValue(record.boxSerialNumber)}
+                      </td>
                       <td>{displayValue(record.transactionType)}</td>
                       <td>{displayValue(record.fromName)}</td>
                       <td>{displayValue(record.fromOffice)}</td>
@@ -628,7 +779,33 @@ const TransactionRegisterPage = () => {
                       <td>{displayValue(record.toOffice)}</td>
                       <td>{displayValue(record.toLocation)}</td>
                       <td>{displayValue(record.boxStatus)}</td>
-                      <td className="remarks-column">{displayValue(record.remarks)}</td>
+                      <td className="remarks-column">
+                        {displayValue(record.remarks)}
+                      </td>
+                      {isAdmin && (
+                        <td>
+                          <div className="d-flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary transaction-action"
+                              title="Edit transaction"
+                              aria-label={`Edit ${record.boxSerialNumber || "transaction"}`}
+                              onClick={() => openEditDialog(record)}
+                            >
+                              <FiEdit2 />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger transaction-action"
+                              title="Delete transaction"
+                              aria-label={`Delete ${record.boxSerialNumber || "transaction"}`}
+                              onClick={() => handleDelete(record)}
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -686,7 +863,9 @@ const TransactionRegisterPage = () => {
                 type="button"
                 className="pagination-btn"
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(page + 1, totalPages))
+                }
               >
                 Next
               </button>

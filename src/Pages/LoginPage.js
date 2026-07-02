@@ -132,9 +132,7 @@ const LoginPage = () => {
     <div className="login-container">
       <Toaster position="top-right" reverseOrder={false} />
 
-      <div className="login-monitor-strip">
-        PXE- PORTAL
-      </div>
+      <div className="login-monitor-strip">PXE- PORTAL</div>
 
       <div className="login-card">
         <div className="login-card__heading">
@@ -243,7 +241,8 @@ const LoginPage = () => {
         </form>
 
         <div className="security-note">
-          <strong>Security Protocol:</strong> If You Forget your password please Contact Admin.
+          <strong>Security Protocol:</strong> If You Forget your password please
+          Contact Admin.
         </div>
 
         {/* <button type="button" className="admin-contact">

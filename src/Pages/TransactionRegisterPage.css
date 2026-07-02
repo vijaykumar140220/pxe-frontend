@@ -191,6 +191,35 @@
   word-break: normal;
 }
 
+.transaction-action {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.transaction-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.transaction-action.btn-outline-primary {
+  color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.transaction-action.btn-outline-danger {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.transaction-action:hover {
+  opacity: 0.92;
+}
+
 .transaction-pagination {
   padding: 14px 18px;
   display: flex;
