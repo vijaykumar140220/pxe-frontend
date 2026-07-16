@@ -27,6 +27,7 @@ const initialForm = {
   toOffice: "",
   toLocation: "",
   boxStatus: "",
+  natureOfFault: "",
   remarks: "",
 };
 
@@ -36,14 +37,15 @@ const columns = [
   { key: "date", label: "Date", required: true },
   { key: "boxSerialNumber", label: "Box Serial Number", required: true },
   { key: "transactionType", label: "Transaction Type", required: true },
-  { key: "fromName", label: "From (Name)" },
-  { key: "fromOffice", label: "From (Office)" },
-  { key: "fromLocation", label: "From (Location)" },
-  { key: "toName", label: "To (Name)" },
-  { key: "toOffice", label: "To (Office)" },
-  { key: "toLocation", label: "To (Location)" },
-  { key: "boxStatus", label: "Box Status" },
-  { key: "remarks", label: "Nature of Fault / Remarks" },
+  { key: "fromName", label: "From (Name)", required: true },
+  { key: "fromOffice", label: "From (Office)", required: true },
+  { key: "fromLocation", label: "From (Location)", required: true },
+  { key: "toName", label: "To (Name)", required: true },
+  { key: "toOffice", label: "To (Office)", required: true },
+  { key: "toLocation", label: "To (Location)", required: true },
+  { key: "boxStatus", label: "Box Status", required: true },
+  { key: "natureOfFault", label: "Nature of Fault", required: true },
+  { key: "remarks", label: "Remarks", required: true },
 ];
 
 const fieldPlaceholders = {
@@ -57,7 +59,8 @@ const fieldPlaceholders = {
   toOffice: "Select destination office",
   toLocation: "Select destination location",
   boxStatus: "Select box status",
-  remarks: "Enter nature of fault / remarks",
+  natureOfFault: "Enter nature of fault",
+  remarks: "Enter remarks",
 };
 
 const transactionTypes = ["PURCHASE", "ISSUE", "RECEIPT", "ON LOAN"];
@@ -259,7 +262,21 @@ const normalizeExcelRow = (row) => {
     boxStatus: String(
       getCellValue(row, ["Box Status", "Status", "Service State"]),
     ).trim(),
-    remarks: String(getCellValue(row, ["Remarks", "Remark", "Notes"])).trim(),
+    natureOfFault: String(
+      getCellValue(row, [
+        "Nature of Fault",
+        "Fault Nature",
+        "Nature of Fault / Remarks",
+      ]),
+    ).trim(),
+    remarks: String(
+      getCellValue(row, [
+        "Remarks",
+        "Remark",
+        "Notes",
+        "Nature of Fault / Remarks",
+      ]),
+    ).trim(),
   };
 };
 
@@ -332,7 +349,7 @@ const TransactionRegisterPage = () => {
     () => sortedRecords.slice(pageStartIndex, pageStartIndex + recordsPerPage),
     [sortedRecords, pageStartIndex, recordsPerPage],
   );
-  const tableColSpan = 12 + (isAdmin ? 1 : 0);
+  const tableColSpan = columns.length + 1 + (isAdmin ? 1 : 0);
 
   const openEditDialog = (record) => {
     setEditingRecord(record);
@@ -347,6 +364,7 @@ const TransactionRegisterPage = () => {
       toOffice: record.toOffice || "",
       toLocation: record.toLocation || "",
       boxStatus: record.boxStatus || "",
+      natureOfFault: record.natureOfFault || "",
       remarks: record.remarks || "",
     });
   };
@@ -526,7 +544,10 @@ const TransactionRegisterPage = () => {
       "To (Office)": displayValue(record.toOffice),
       "To (Location)": displayValue(record.toLocation),
       "Box Status": displayValue(record.boxStatus),
-      "Nature of Fault / Remarks": displayValue(record.remarks),
+      "Nature of Fault": displayValue(
+        record.natureOfFault || record.remarks,
+      ),
+      Remarks: displayValue(record.remarks),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
@@ -586,36 +607,47 @@ const TransactionRegisterPage = () => {
             onSubmit={handleSubmit}
             noValidate
           >
-            <div className="location-add-row">
-              <label>Add Location</label>
-              <input
-                value={newLocation}
-                placeholder="Type new location"
-                onChange={(event) => setNewLocation(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    handleAddLocation();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="enterprise-btn enterprise-btn--secondary"
-                onClick={handleAddLocation}
-              >
-                Add
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="location-add-row">
+                <label>Add Location</label>
+                <input
+                  value={newLocation}
+                  placeholder="Type new location"
+                  onChange={(event) => setNewLocation(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleAddLocation();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="enterprise-btn enterprise-btn--secondary"
+                  onClick={handleAddLocation}
+                >
+                  Add
+                </button>
+              </div>
+            )}
             <div className="transaction-form__grid">
-              {columns.map(({ key, label }) => (
+              {columns.map(({ key, label, required }) => (
                 <div className="transaction-field" key={key}>
-                  <label>{label}</label>
+                  <label>
+                    {label}
+                    {required && (
+                      <span className="required-mark" aria-hidden="true">
+                        *
+                      </span>
+                    )}
+                  </label>
                   {key === "transactionType" ? (
                     <select
                       name={key}
                       value={form[key]}
                       onChange={handleChange}
+                      required={required}
+                      aria-required={required}
                     >
                       <option value="">Select type</option>
                       {transactionTypes.map((type) => (
@@ -629,6 +661,8 @@ const TransactionRegisterPage = () => {
                       name={key}
                       value={form[key]}
                       onChange={handleChange}
+                      required={required}
+                      aria-required={required}
                     >
                       <option value="">Select office</option>
                       {officeOptions.map((office) => (
@@ -642,6 +676,8 @@ const TransactionRegisterPage = () => {
                       name={key}
                       value={form[key]}
                       onChange={handleChange}
+                      required={required}
+                      aria-required={required}
                     >
                       <option value="">Select location</option>
                       {locationOptions.map((location) => (
@@ -655,6 +691,8 @@ const TransactionRegisterPage = () => {
                       name={key}
                       value={form[key]}
                       onChange={handleChange}
+                      required={required}
+                      aria-required={required}
                     >
                       <option value="">Select status</option>
                       {boxStatuses.map((status) => (
@@ -670,6 +708,8 @@ const TransactionRegisterPage = () => {
                       value={form[key]}
                       onChange={handleChange}
                       placeholder={fieldPlaceholders[key]}
+                      required={required}
+                      aria-required={required}
                       pattern={
                         key === "boxSerialNumber"
                           ? BOX_SERIAL_INPUT_PATTERN
@@ -745,10 +785,14 @@ const TransactionRegisterPage = () => {
                       sortKey={key}
                       sortConfig={sortConfig}
                       onSort={handleSort}
-                      className={key === "remarks" ? "remarks-column" : ""}
+                      className={
+                        key === "natureOfFault" || key === "remarks"
+                          ? "remarks-column"
+                          : ""
+                      }
                     />
                   ))}
-                  {isAdmin && <th>Actions</th>}
+                  {isAdmin && <th className="actions-column">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -780,11 +824,14 @@ const TransactionRegisterPage = () => {
                       <td>{displayValue(record.toLocation)}</td>
                       <td>{displayValue(record.boxStatus)}</td>
                       <td className="remarks-column">
+                        {displayValue(record.natureOfFault || record.remarks)}
+                      </td>
+                      <td className="remarks-column">
                         {displayValue(record.remarks)}
                       </td>
                       {isAdmin && (
-                        <td>
-                          <div className="d-flex gap-2">
+                        <td className="actions-column">
+                          <div className="transaction-actions">
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-primary transaction-action"

@@ -1,5 +1,5 @@
 import "./App.css";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Provider, useDispatch } from "react-redux";
 import store from "./Redux/store";
 import AddPage from "./Pages/Addpage";
@@ -38,6 +38,12 @@ const ACTIVITY_EVENTS = [
 const AppContent = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, logout } = useAuth();
+  const [isAppLoading, setIsAppLoading] = useState(true);
+
+  useEffect(() => {
+    const loadingTimer = window.setTimeout(() => setIsAppLoading(false), 1400);
+    return () => window.clearTimeout(loadingTimer);
+  }, []);
 
   useEffect(() => {
     let logoutTimer;
@@ -98,6 +104,25 @@ const AppContent = () => {
 
   return (
     <div className="App">
+      {isAppLoading && (
+        <div className="app-loader" role="status" aria-label="Loading PXE Portal">
+          <div className="app-loader__content">
+            <div className="app-loader__logo-wrap">
+              <span className="app-loader__ring app-loader__ring--outer" />
+              <span className="app-loader__ring app-loader__ring--inner" />
+              <img
+                className="app-loader__logo"
+                src="/log.png"
+                alt="PXE Portal"
+              />
+            </div>
+            <p className="app-loader__label">Securing your workspace</p>
+            <div className="app-loader__progress" aria-hidden="true">
+              <span />
+            </div>
+          </div>
+        </div>
+      )}
       <Header />
       <div
         className={`app-shell ${isAuthenticated ? "app-shell--with-sidebar" : ""}`}

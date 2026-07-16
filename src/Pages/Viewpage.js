@@ -7,10 +7,45 @@ import { getBoxRemarkText } from "../utils/reportData";
 
 const TRANSACTION_API_URL = "http://127.0.0.1:5000/transaction-history";
 const SELECTED_BOXES_STORAGE_KEY = "pxe_selected_boxes";
+const CHALLAN_SEQUENCE_STORAGE_KEY = "pxe_challan_daily_sequence";
+
+const getChallanDatePart = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}${month}${day}`;
+};
+
+const getCurrentChallanSerial = () => {
+  const date = getChallanDatePart();
+
+  try {
+    const storedSequence = JSON.parse(
+      localStorage.getItem(CHALLAN_SEQUENCE_STORAGE_KEY),
+    );
+    if (
+      storedSequence?.date === date &&
+      Number.isInteger(storedSequence.serial) &&
+      storedSequence.serial > 0
+    ) {
+      return storedSequence.serial;
+    }
+  } catch {
+    // Start a new sequence if the saved value is not available or invalid.
+  }
+
+  return 1;
+};
+
+const createChallanNumber = (serial) => `${getChallanDatePart()}${serial}`;
 
 const ViewPage = () => {
   const reportRef = useRef(null);
   const [records, setRecords] = useState([]);
+  const [challanSerial, setChallanSerial] = useState(getCurrentChallanSerial);
+  const challanNumber = createChallanNumber(challanSerial);
   const [lookupSerial, setLookupSerial] = useState("");
   const [fetchedBox, setFetchedBox] = useState(null);
   const [selectedBoxes, setSelectedBoxes] = useState(() => {
@@ -74,6 +109,43 @@ const ViewPage = () => {
     String(
       box?.boxSerialNumber || box?.serialNumber || box?.pxeSerialNumber || "",
     ).trim();
+
+  const displayValue = (value) => String(value || "").trim() || "N/A";
+
+  const formatReportDate = (value) => {
+    const cleanValue = String(value || "").trim();
+    if (!cleanValue) return "N/A";
+
+    const parsed = new Date(cleanValue);
+    if (Number.isNaN(parsed.getTime())) return cleanValue;
+
+    return parsed.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const joinReportParts = (...parts) => {
+    const text = parts
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(" / ");
+    return text || "N/A";
+  };
+
+  const getReportType = (box) =>
+    displayValue(box?.transactionType || box?.action);
+
+  const getReportTo = (box) =>
+    joinReportParts(box?.toName, box?.toOffice || box?.to, box?.toLocation);
+
+  const getReportFrom = (box) =>
+    joinReportParts(
+      box?.fromName,
+      box?.fromOffice || box?.from,
+      box?.fromLocation,
+    );
 
   const createUniqueId = () =>
     typeof crypto !== "undefined" && crypto.randomUUID
@@ -154,14 +226,11 @@ const ViewPage = () => {
             fetchedBox.serviceState ||
             fetchedBox.currentStatus ||
             "N/A",
-          date: fetchedBox.date || fetchedBox.createdAt || "",
-          type: fetchedBox.transactionType || fetchedBox.action || "N/A",
-          to:
-            fetchedBox.toOffice ||
-            fetchedBox.to ||
-            fetchedBox.toLocation ||
-            "N/A",
-          from: fetchedBox.fromOffice || fetchedBox.from || "N/A",
+          date: formatReportDate(fetchedBox.date || fetchedBox.createdAt),
+          type: getReportType(fetchedBox),
+          to: getReportTo(fetchedBox),
+          from: getReportFrom(fetchedBox),
+          natureOfFault: String(fetchedBox.natureOfFault || "").trim(),
           remarks: getBoxRemarkText(fetchedBox),
         },
       ];
@@ -277,6 +346,13 @@ const ViewPage = () => {
     pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
     pdf.save("PXE-Report.pdf");
 
+    const nextSerial = challanSerial + 1;
+    localStorage.setItem(
+      CHALLAN_SEQUENCE_STORAGE_KEY,
+      JSON.stringify({ date: getChallanDatePart(), serial: nextSerial }),
+    );
+    setChallanSerial(nextSerial);
+
     // Clear all input fields after generating PDF
     setIssuedBy({
       name: "",
@@ -368,6 +444,7 @@ const ViewPage = () => {
                       <th>Type</th>
                       <th>To</th>
                       <th>From</th>
+                      <th>Nature of Fault</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -385,24 +462,13 @@ const ViewPage = () => {
                           "N/A"}
                       </td>
                       <td>
-                        {fetchedBox.date || fetchedBox.createdAt || "N/A"}
+                        {formatReportDate(fetchedBox.date || fetchedBox.createdAt)}
                       </td>
+                      <td>{getReportType(fetchedBox)}</td>
+                      <td>{getReportTo(fetchedBox)}</td>
+                      <td>{getReportFrom(fetchedBox)}</td>
                       <td>
-                        {fetchedBox.transactionType ||
-                          fetchedBox.action ||
-                          "N/A"}
-                      </td>
-                      <td>
-                        {fetchedBox.toOffice ||
-                          fetchedBox.to ||
-                          fetchedBox.toLocation ||
-                          "N/A"}
-                      </td>
-                      <td>
-                        {fetchedBox.fromOffice || fetchedBox.from || "N/A"}
-                      </td>
-                      <td>
-                        {getBoxRemarkText(fetchedBox) || "N/A"}
+                        {fetchedBox.natureOfFault || "N/A"}
                       </td>
                     </tr>
                   </tbody>
@@ -424,7 +490,7 @@ const ViewPage = () => {
                       <th>Type</th>
                       <th>To</th>
                       <th>From</th>
-                      <th>Nature of Fault / Remarks</th>
+                      <th>Nature of Fault</th>
                       <th>Power Adapter Qty</th>
                       <th>GPS Antenna Qty</th>
                       <th>Action</th>
@@ -435,11 +501,11 @@ const ViewPage = () => {
                       <tr key={item.id}>
                         <td>{item.boxSerialNumber}</td>
                         <td>{item.status}</td>
-                        <td>{item.date}</td>
-                        <td>{item.type}</td>
-                        <td>{item.to}</td>
-                        <td>{item.from}</td>
-                        <td>{item.remarks || "N/A"}</td>
+                        <td>{formatReportDate(item.date)}</td>
+                        <td>{displayValue(item.type)}</td>
+                        <td>{displayValue(item.to)}</td>
+                        <td>{displayValue(item.from)}</td>
+                        <td>{item.natureOfFault || "N/A"}</td>
                         <td>
                           <input
                             type="number"
@@ -519,7 +585,7 @@ const ViewPage = () => {
               </div>
               <div className="report-right text-end">
                 <h4 className="delivery-challan">DELIVERY CHALLAN</h4>
-                <p className="challan-ref">CGPL-DCD31720206</p>
+                <p className="challan-ref">{challanNumber}</p>
               </div>
             </div>
             <div className="text-center mb-4">
@@ -565,24 +631,19 @@ const ViewPage = () => {
                 <table className="table table-bordered report-table">
                   <thead>
                     <tr>
+                      <th>S.No</th>
                       <th>Box Serial</th>
                       <th>Status</th>
-                      <th>Date</th>
-                      <th>Type</th>
-                      <th>To</th>
-                      <th>From</th>
+                      <th>Nature of Fault</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedBoxes.map((item) => (
+                    {selectedBoxes.map((item, index) => (
                       <tr key={item.id}>
+                        <td>{String(index + 1).padStart(2, "0")}</td>
                         <td>{item.boxSerialNumber}</td>
                         <td>{item.status}</td>
-                        <td>{item.date}</td>
-                        <td>{item.type}</td>
-                        <td>{item.to}</td>
-                        <td>{item.from}</td>
-                        <td>{item.remarks || "N/A"}</td>
+                        <td>{item.natureOfFault || "N/A"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -638,6 +699,10 @@ const ViewPage = () => {
                     onChange={(e) => updateIssuedBy("date", e.target.value)}
                   />
                 </div>
+                <div className="report-field">
+                  <label>Seal</label>
+                  <div className="signature-space"></div>
+                </div>
               </div>
               <div className="col-md-6">
                 <h5>Received By</h5>
@@ -658,7 +723,9 @@ const ViewPage = () => {
                   <input
                     className="form-control report-input"
                     value={receivedBy.mobile}
-                    onChange={(e) => updateReceivedBy("mobile", e.target.value)}
+                    onChange={(e) =>
+                      updateReceivedBy("mobile", e.target.value)
+                    }
                   />
                 </div>
                 <div className="report-field">
@@ -687,6 +754,10 @@ const ViewPage = () => {
                     value={receivedBy.date}
                     onChange={(e) => updateReceivedBy("date", e.target.value)}
                   />
+                </div>
+                <div className="report-field">
+                  <label>Seal</label>
+                  <div className="signature-space"></div>
                 </div>
               </div>
             </div>

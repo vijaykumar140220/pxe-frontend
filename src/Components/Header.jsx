@@ -220,8 +220,9 @@ const Header = () => {
                 type="button"
                 className="enterprise-btn enterprise-btn--danger header-logout"
                 onClick={handleLogout}
+                aria-label="Logout"
               >
-                <FiLogOut /> Logout
+                <FiLogOut /> <span>Logout</span>
               </button>
             </>
           ) : (

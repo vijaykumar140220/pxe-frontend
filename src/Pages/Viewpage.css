@@ -230,14 +230,19 @@
 }
 
 .report-field {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
   margin-bottom: 12px;
 }
 
 .report-field label {
   display: block;
   font-size: 0.78rem;
+  font-weight: 900;
   color: #475569;
-  margin-bottom: 4px;
+  margin: 0;
   text-transform: uppercase;
 }
 
@@ -250,9 +255,18 @@
 }
 
 .report-field input.report-input {
+  width: 100%;
+  min-width: 0;
   border: 1px solid #cbd5e1;
   border-bottom: 1px solid #000000;
   border-radius: 5px;
+}
+
+.report-error {
+  margin: 5px 0 0;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .signature-file-name {
@@ -273,12 +287,27 @@
 
 .signature-space {
   display: block;
-  margin-top: 8px;
+  margin-top: 0;
   width: 180px;
   height: 80px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   background-color: #ffffff;
+}
+
+@media (max-width: 576px) {
+  .report-field {
+    grid-template-columns: 118px minmax(0, 1fr);
+    column-gap: 8px;
+  }
+
+  .report-field label {
+    font-size: 0.68rem;
+  }
+
+  .signature-space {
+    width: min(180px, 100%);
+  }
 }
 
 .report-voucher h5 {

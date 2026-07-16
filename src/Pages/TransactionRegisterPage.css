@@ -73,6 +73,12 @@
   text-transform: uppercase;
 }
 
+.required-mark {
+  margin-left: 4px;
+  color: #dc2626;
+  font-weight: 900;
+}
+
 .transaction-field input,
 .transaction-field select {
   min-height: 44px;
@@ -169,12 +175,13 @@
 }
 
 .transaction-table {
-  min-width: 1650px;
+  min-width: 1850px;
 }
 
 .transaction-table th,
 .transaction-table td {
   text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -182,13 +189,25 @@
 .transaction-table td.remarks-column {
   min-width: 360px;
   max-width: 620px;
-  text-align: left;
+  text-align: center;
   white-space: normal;
 }
 
 .transaction-table td.remarks-column {
   overflow-wrap: anywhere;
   word-break: normal;
+}
+
+.transaction-table th.actions-column,
+.transaction-table td.actions-column {
+  text-align: center;
+}
+
+.transaction-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .transaction-action {

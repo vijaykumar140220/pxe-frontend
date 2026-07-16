@@ -517,20 +517,83 @@ const DashboardPage = () => {
   ];
 
   const breakdownItems = [
-    { label: "C-DAC Stock (Ser)", value: analytics.cDACStockSer },
-    { label: "C-DAC Stock (Un-Ser)", value: analytics.cDACStockUnSer },
-    { label: "C-DAC (On Loan)", value: analytics.cDACOnLoan },
-    { label: "Eduquity (Ser)", value: analytics.eduquitySer },
-    { label: "Eduquity (Un-Ser)", value: analytics.eduquityUnSer },
-    { label: "Eduquity (Tampered)", value: analytics.eduquityTampered },
+    {
+      label: "C-DAC Stock (Ser)",
+      logo: "CD",
+      value: analytics.cDACStockSer,
+      color: "#1e40af",
+      bg: "#dbeafe",
+    },
+    {
+      label: "C-DAC Stock (Un-Ser)",
+      logo: "CD",
+      value: analytics.cDACStockUnSer,
+      color: "#0369a1",
+      bg: "#cffafe",
+    },
+    {
+      label: "C-DAC (On Loan)",
+      logo: "CD",
+      value: analytics.cDACOnLoan,
+      color: "#2563eb",
+      bg: "#eff6ff",
+    },
+    {
+      label: "Eduquity (Ser)",
+      logo: "EQ",
+      value: analytics.eduquitySer,
+      color: "#16a34a",
+      bg: "#dcfce7",
+    },
+    {
+      label: "Eduquity (Un-Ser)",
+      logo: "EQ",
+      value: analytics.eduquityUnSer,
+      color: "#059669",
+      bg: "#d1fae5",
+    },
+    {
+      label: "Eduquity (Tampered)",
+      logo: "EQ",
+      value: analytics.eduquityTampered,
+      color: "#dc2626",
+      bg: "#fee2e2",
+    },
     {
       label: "Eduquity (Police Custody)",
+      logo: "EQ",
       value: analytics.eduquityPoliceCustody,
+      color: "#f59e0b",
+      bg: "#fef3c7",
     },
-    { label: "Aheesa (Un-Ser)", value: analytics.aheesaUnSer },
-    { label: "Exam Centre", value: analytics.examCentre },
-    { label: "Flashing Hub", value: analytics.flashingHub },
-    { label: "Not Traced", value: analytics.notTraced },
+    {
+      label: "Aheesa (Un-Ser)",
+      logo: "AH",
+      value: analytics.aheesaUnSer,
+      color: "#7c3aed",
+      bg: "#ede9fe",
+    },
+    {
+      label: "Exam Centre",
+      logo: "EX",
+      value: analytics.examCentre,
+      color: "#6366f1",
+      bg: "#e0e7ff",
+    },
+    {
+      label: "Flashing Hub",
+      logo: "FH",
+      value: analytics.flashingHub,
+      color: "#d946ef",
+      bg: "#fce7f3",
+    },
+    {
+      label: "Not Traced",
+      logo: "NT",
+      value: analytics.notTraced,
+      color: "#8b5cf6",
+      bg: "#f3e8ff",
+    },
   ];
 
   const movementData = {
@@ -809,7 +872,20 @@ const DashboardPage = () => {
           </div>
           <div className="breakdown-grid">
             {breakdownItems.map((item) => (
-              <div key={item.label} className="breakdown-item">
+              <div
+                key={item.label}
+                className="breakdown-item"
+                style={{ "--item-color": item.color, "--item-bg": item.bg }}
+              >
+                <div className="breakdown-item__header">
+                  <i
+                    className="breakdown-item__icon"
+                    style={{ color: item.color, background: item.bg }}
+                    aria-hidden="true"
+                  >
+                    <span>{item.logo}</span>
+                  </i>
+                </div>
                 <span>{item.label}</span>
                 <strong>{loading ? "--" : compactNumber(item.value)}</strong>
               </div>
