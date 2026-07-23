@@ -17,6 +17,7 @@ import { nextSortConfig, sortTableRows } from "../utils/tableSort";
 import "./SettingsPage.css";
 
 const USERS_API_URL = "http://127.0.0.1:5000/auth/users";
+const USERS_KEY = "pxeRegisteredUsers";
 
 const emptyForm = {
   name: "",
@@ -64,6 +65,10 @@ const toForm = (user) => ({
   role: String(user.role || "user").toLowerCase(),
 });
 
+const syncStoredUsers = (users) => {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+};
+
 const SettingsPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +88,9 @@ const SettingsPage = () => {
     try {
       setLoading(true);
       const response = await axios.get(USERS_API_URL);
-      setUsers(Array.isArray(response.data) ? response.data : []);
+      const nextUsers = Array.isArray(response.data) ? response.data : [];
+      setUsers(nextUsers);
+      syncStoredUsers(nextUsers);
       if (notify) toast.success("Register credentials refreshed");
     } catch (error) {
       toast.error(
@@ -190,11 +197,13 @@ const SettingsPage = () => {
         form,
       );
       const updatedUser = response.data?.user || { ...editingUser, ...form };
-      setUsers((current) =>
-        current.map((user) =>
+      setUsers((current) => {
+        const nextUsers = current.map((user) =>
           user._id === editingUser._id ? updatedUser : user,
-        ),
-      );
+        );
+        syncStoredUsers(nextUsers);
+        return nextUsers;
+      });
       toast.success("Register credential updated");
       closeEditor();
     } catch (error) {
@@ -213,7 +222,11 @@ const SettingsPage = () => {
 
     try {
       await axios.delete(`${USERS_API_URL}/${user._id}`);
-      setUsers((current) => current.filter((item) => item._id !== user._id));
+      setUsers((current) => {
+        const nextUsers = current.filter((item) => item._id !== user._id);
+        syncStoredUsers(nextUsers);
+        return nextUsers;
+      });
       toast.success("Register credential deleted");
     } catch (error) {
       toast.error(
@@ -332,7 +345,7 @@ const SettingsPage = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="settings-empty">
+                    <td colSpan="7" className="settings-empty">
                       Loading register credentials...
                     </td>
                   </tr>
@@ -358,18 +371,18 @@ const SettingsPage = () => {
                         <div className="settings-actions">
                           <button
                             type="button"
-                            title="Edit register"
-                            onClick={() => openEditor(user)}
-                          >
-                            <FiEdit2 />
-                          </button>
-                          <button
-                            type="button"
                             title="Reset password"
                             className="is-warning"
                             onClick={() => openPasswordReset(user)}
                           >
                             <FiKey />
+                          </button>
+                          <button
+                            type="button"
+                            title="Edit register"
+                            onClick={() => openEditor(user)}
+                          >
+                            <FiEdit2 />
                           </button>
                           <button
                             type="button"

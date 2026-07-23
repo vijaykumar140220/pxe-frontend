@@ -141,43 +141,60 @@ const LiveStatusPage = () => {
 
   const locationStatusBreakdown = useMemo(() => {
     const breakdown = {
-      cdacStock: { serviceable: 0, unserviceable: 0 },
-      cdacLoan: { serviceable: 0, unserviceable: 0 },
-      eduquity: { serviceable: 0, unserviceable: 0 },
-      aheesa: { serviceable: 0, unserviceable: 0 },
-      examCentre: { serviceable: 0, unserviceable: 0 },
-      flashingHub: { serviceable: 0, unserviceable: 0 },
-      notTraced: { serviceable: 0, unserviceable: 0 },
-      other: { serviceable: 0, unserviceable: 0 },
+      cdacStock: { count: 0, serviceable: 0, unserviceable: 0 },
+      cdacLoan: { count: 0, serviceable: 0, unserviceable: 0 },
+      eduquity: { count: 0, serviceable: 0, unserviceable: 0 },
+      aheesa: { count: 0, serviceable: 0, unserviceable: 0 },
+      examCentre: { count: 0, serviceable: 0, unserviceable: 0 },
+      flashingHub: { count: 0, serviceable: 0, unserviceable: 0 },
+      policeCustody: { count: 0, serviceable: 0, unserviceable: 0 },
+      notTraced: { count: 0, serviceable: 0, unserviceable: 0 },
+      other: { count: 0, serviceable: 0, unserviceable: 0 },
     };
 
     records.forEach((record) => {
       const location = (record.location || "").toUpperCase();
-      const isServiceable =
-        record.currentStatus?.toUpperCase() === "SERVICEABLE";
+      const currentStatus = (record.currentStatus || "").toUpperCase();
+      const isServiceable = currentStatus === "SERVICEABLE";
       const statusKey = isServiceable ? "serviceable" : "unserviceable";
+      const isPoliceCustody =
+        location.includes("POLICE") || currentStatus.includes("POLICE");
+      const isNotTraced =
+        location.includes("NOT TRACED") || currentStatus.includes("NOT TRACED");
 
-      if (location.includes("STOCK")) {
+      if (isPoliceCustody) {
+        breakdown.policeCustody.count += 1;
+      } else if (isNotTraced) {
+        breakdown.notTraced.count += 1;
+      } else if (location.includes("STOCK")) {
+        breakdown.cdacStock.count += 1;
         breakdown.cdacStock[statusKey] += 1;
       } else if (location.includes("LOAN")) {
+        breakdown.cdacLoan.count += 1;
         breakdown.cdacLoan[statusKey] += 1;
       } else if (location.includes("EDUQUITY")) {
+        breakdown.eduquity.count += 1;
         breakdown.eduquity[statusKey] += 1;
       } else if (location.includes("AHEESA")) {
+        breakdown.aheesa.count += 1;
         breakdown.aheesa[statusKey] += 1;
       } else if (location.includes("EXAM")) {
+        breakdown.examCentre.count += 1;
         breakdown.examCentre[statusKey] += 1;
       } else if (location.includes("FLASHING")) {
+        breakdown.flashingHub.count += 1;
         breakdown.flashingHub[statusKey] += 1;
-      } else if (location.includes("NOT TRACED")) {
-        breakdown.notTraced[statusKey] += 1;
       } else {
+        breakdown.other.count += 1;
         breakdown.other[statusKey] += 1;
       }
     });
 
     return breakdown;
   }, [records]);
+
+  const getRowCount = (row) => row.count;
+  const getRowTotal = (row) => row.count;
 
   return (
     <div className="enterprise-page live-status-page">
@@ -252,6 +269,8 @@ const LiveStatusPage = () => {
               <option value="">All Status</option>
               <option value="Serviceable">Serviceable</option>
               <option value="Un-serviceable">Un-Serviceable</option>
+              <option value="Police Custody">Police Custody</option>
+              <option value="Not Traced">Not Traced</option>
             </select>
           </div>
           <div>
@@ -281,6 +300,7 @@ const LiveStatusPage = () => {
               <thead>
                 <tr>
                   <th>Location</th>
+                  <th>Count</th>
                   <th>Serviceable</th>
                   <th>Un-Serviceable</th>
                   <th>Total</th>
@@ -291,96 +311,112 @@ const LiveStatusPage = () => {
                   <td>
                     <strong>C-DAC Stock (CDAC)</strong>
                   </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.cdacStock)}</strong>
+                  </td>
                   <td>{locationStatusBreakdown.cdacStock.serviceable}</td>
                   <td>{locationStatusBreakdown.cdacStock.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.cdacStock.serviceable +
-                        locationStatusBreakdown.cdacStock.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.cdacStock)}</strong>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <strong>C-DAC (On Loan)</strong>
                   </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.cdacLoan)}</strong>
+                  </td>
                   <td>{locationStatusBreakdown.cdacLoan.serviceable}</td>
                   <td>{locationStatusBreakdown.cdacLoan.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.cdacLoan.serviceable +
-                        locationStatusBreakdown.cdacLoan.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.cdacLoan)}</strong>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <strong>Eduquity</strong>
                   </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.eduquity)}</strong>
+                  </td>
                   <td>{locationStatusBreakdown.eduquity.serviceable}</td>
                   <td>{locationStatusBreakdown.eduquity.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.eduquity.serviceable +
-                        locationStatusBreakdown.eduquity.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.eduquity)}</strong>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <strong>Aheesa</strong>
                   </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.aheesa)}</strong>
+                  </td>
                   <td>{locationStatusBreakdown.aheesa.serviceable}</td>
                   <td>{locationStatusBreakdown.aheesa.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.aheesa.serviceable +
-                        locationStatusBreakdown.aheesa.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.aheesa)}</strong>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <strong>Exam Centre</strong>
                   </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.examCentre)}</strong>
+                  </td>
                   <td>{locationStatusBreakdown.examCentre.serviceable}</td>
                   <td>{locationStatusBreakdown.examCentre.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.examCentre.serviceable +
-                        locationStatusBreakdown.examCentre.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.examCentre)}</strong>
                   </td>
                 </tr>
                 <tr>
                   <td>
                     <strong>Flashing Hub</strong>
                   </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.flashingHub)}</strong>
+                  </td>
                   <td>{locationStatusBreakdown.flashingHub.serviceable}</td>
                   <td>{locationStatusBreakdown.flashingHub.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.flashingHub.serviceable +
-                        locationStatusBreakdown.flashingHub.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.flashingHub)}</strong>
                   </td>
                 </tr>
-                <tr>
+                <tr className="live-breakdown-row--highlight">
+                  <td>
+                    <strong>Police Custody</strong>
+                  </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.policeCustody)}</strong>
+                  </td>
+                  <td>{locationStatusBreakdown.policeCustody.serviceable}</td>
+                  <td>{locationStatusBreakdown.policeCustody.unserviceable}</td>
+                  <td>
+                    <strong>{getRowTotal(locationStatusBreakdown.policeCustody)}</strong>
+                  </td>
+                </tr>
+                <tr className="live-breakdown-row--highlight">
                   <td>
                     <strong>Not Traced</strong>
+                  </td>
+                  <td>
+                    <strong>{getRowCount(locationStatusBreakdown.notTraced)}</strong>
                   </td>
                   <td>{locationStatusBreakdown.notTraced.serviceable}</td>
                   <td>{locationStatusBreakdown.notTraced.unserviceable}</td>
                   <td>
-                    <strong>
-                      {locationStatusBreakdown.notTraced.serviceable +
-                        locationStatusBreakdown.notTraced.unserviceable}
-                    </strong>
+                    <strong>{getRowTotal(locationStatusBreakdown.notTraced)}</strong>
                   </td>
                 </tr>
                 <tr className="live-breakdown-total">
                   <td>
                     <strong>TOTAL</strong>
+                  </td>
+                  <td>
+                    <strong>{records.length}</strong>
                   </td>
                   <td>
                     <strong>{serviceableCount}</strong>

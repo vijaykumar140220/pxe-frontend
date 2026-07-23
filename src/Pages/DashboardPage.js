@@ -241,12 +241,18 @@ const buildAnalytics = (inventory, transactions) => {
       location.includes(key)
     );
   };
+  const isExactLocation = (record, key) => {
+    if (!record) return false;
+    const office = normalize(record.toOffice || "");
+    const location = normalize(record.toLocation || "");
+    return office === key || location === key;
+  };
   const cDACStockSer = latest.filter(
-    (record) => isLocation(record, "STOCK") && isStatus(record, "SERVICEABLE"),
+    (record) => isExactLocation(record, "STOCK") && isStatus(record, "SERVICEABLE"),
   ).length;
   const cDACStockUnSer = latest.filter(
     (record) =>
-      isLocation(record, "STOCK") &&
+      isExactLocation(record, "STOCK") &&
       isStatus(record, "UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"),
   ).length;
   const cDACOnLoan = latest.filter((record) => {
@@ -279,19 +285,13 @@ const buildAnalytics = (inventory, transactions) => {
       isLocation(record, "AHEESA") &&
       isStatus(record, "UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"),
   ).length;
-  const examCentre = latest.filter(
-    (record) =>
-      isLocation(record, "EXAM") ||
-      normalize(record.toOffice || "").includes("EXAM"),
-  ).length;
-  const flashingHub = latest.filter(
-    (record) =>
-      isLocation(record, "FLASHING") ||
-      normalize(record.toOffice || "").includes("FLASHING"),
-  ).length;
   const notTraced = statusCount((record) =>
     isStatus(record, "NOT TRACED", "NOT-TRACED"),
   );
+  const cDAC = cDACStockSer + cDACStockUnSer + cDACOnLoan;
+  const eduquity =
+    eduquitySer + eduquityUnSer + eduquityTampered + eduquityPoliceCustody;
+  const aheesa = aheesaUnSer;
 
   const categoryCounts = new Map();
   inventory.forEach((asset) =>
@@ -348,44 +348,16 @@ const buildAnalytics = (inventory, transactions) => {
     cDACStockSer,
     cDACStockUnSer,
     cDACOnLoan,
+    cDAC,
+    eduquity,
     eduquitySer,
     eduquityUnSer,
     eduquityTampered,
     eduquityPoliceCustody,
-    aheesaUnSer,
-    examCentre,
-    flashingHub,
+    aheesa,
     notTraced,
   };
 };
-
-const MiniSparkline = ({ values, color }) => (
-  <div className="gov-kpi__spark" aria-hidden="true">
-    <Line
-      data={{
-        labels: values.map((_, index) => index),
-        datasets: [
-          {
-            data: values,
-            borderColor: color,
-            backgroundColor: `${color}1f`,
-            fill: true,
-            borderWidth: 1.7,
-            pointRadius: 0,
-            tension: 0.4,
-          },
-        ],
-      }}
-      options={{
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } },
-      }}
-    />
-  </div>
-);
 
 const ChartPanel = ({ title, subtitle, children, action }) => (
   <section className="enterprise-card gov-chart-card">
@@ -479,6 +451,9 @@ const DashboardPage = () => {
       color: "#1e40af",
       trend: 0,
     },
+  ];
+
+  const operationalKpis = [
     {
       label: "Serviceable Assets",
       value: analytics.serviceable,
@@ -518,74 +493,36 @@ const DashboardPage = () => {
 
   const breakdownItems = [
     {
-      label: "C-DAC Stock (Ser)",
+      label: "C-DAC",
       logo: "CD",
-      value: analytics.cDACStockSer,
+      value: analytics.cDAC,
       color: "#1e40af",
       bg: "#dbeafe",
+      details: [
+        ["Stock (Ser)", analytics.cDACStockSer],
+        ["Stock (Un-Ser)", analytics.cDACStockUnSer],
+        ["On Loan", analytics.cDACOnLoan],
+      ],
     },
     {
-      label: "C-DAC Stock (Un-Ser)",
-      logo: "CD",
-      value: analytics.cDACStockUnSer,
-      color: "#0369a1",
-      bg: "#cffafe",
-    },
-    {
-      label: "C-DAC (On Loan)",
-      logo: "CD",
-      value: analytics.cDACOnLoan,
-      color: "#2563eb",
-      bg: "#eff6ff",
-    },
-    {
-      label: "Eduquity (Ser)",
+      label: "EDUQUITY",
       logo: "EQ",
-      value: analytics.eduquitySer,
+      value: analytics.eduquity,
       color: "#16a34a",
       bg: "#dcfce7",
+      details: [
+        ["Eduquity (Ser)", analytics.eduquitySer],
+        ["Eduquity (Un-Ser)", analytics.eduquityUnSer],
+        ["Eduquity (Tampered)", analytics.eduquityTampered],
+        ["Eduquity (Police Custody)", analytics.eduquityPoliceCustody],
+      ],
     },
     {
-      label: "Eduquity (Un-Ser)",
-      logo: "EQ",
-      value: analytics.eduquityUnSer,
-      color: "#059669",
-      bg: "#d1fae5",
-    },
-    {
-      label: "Eduquity (Tampered)",
-      logo: "EQ",
-      value: analytics.eduquityTampered,
-      color: "#dc2626",
-      bg: "#fee2e2",
-    },
-    {
-      label: "Eduquity (Police Custody)",
-      logo: "EQ",
-      value: analytics.eduquityPoliceCustody,
-      color: "#f59e0b",
-      bg: "#fef3c7",
-    },
-    {
-      label: "Aheesa (Un-Ser)",
+      label: "AHEESA",
       logo: "AH",
-      value: analytics.aheesaUnSer,
+      value: analytics.aheesa,
       color: "#7c3aed",
       bg: "#ede9fe",
-    },
-    {
-      label: "Exam Centre",
-      logo: "EX",
-      value: analytics.examCentre,
-      color: "#6366f1",
-      bg: "#e0e7ff",
-    },
-    {
-      label: "Flashing Hub",
-      logo: "FH",
-      value: analytics.flashingHub,
-      color: "#d946ef",
-      bg: "#fce7f3",
     },
     {
       label: "Not Traced",
@@ -836,8 +773,8 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        <section className="gov-kpi-grid" aria-busy={loading}>
-          {kpis.map((item) => {
+        <section className="gov-kpi-grid gov-kpi-grid--top" aria-busy={loading}>
+          {[...kpis, ...breakdownItems].map((item) => {
             const Icon = item.icon;
             return (
               <article
@@ -847,50 +784,52 @@ const DashboardPage = () => {
               >
                 <div className="gov-kpi__top">
                   <span>{item.label}</span>
-                  <i>
-                    <Icon />
-                  </i>
+                  <i>{Icon ? <Icon /> : <span>{item.logo}</span>}</i>
                 </div>
                 <div className="gov-kpi__value">
                   {loading ? "--" : compactNumber(item.value)}
                 </div>
-                <MiniSparkline
-                  values={sparkValues.length ? sparkValues : [0, 0, 0, 0]}
-                  color={item.color}
-                />
+                {item.details && (
+                  <div className="breakdown-item__details">
+                    {item.details.map(([detailLabel, detailValue]) => (
+                      <div key={detailLabel}>
+                        <span>{detailLabel}</span>
+                        <strong>
+                          {loading ? "--" : compactNumber(detailValue)}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </article>
             );
           })}
         </section>
 
-        <section className="enterprise-card breakdown-panel">
-          <div className="gov-card-heading">
-            <div>
-              <h3>Inventory Breakdown</h3>
-              <p>Latest custody classification across core PXE pools</p>
-            </div>
-          </div>
-          <div className="breakdown-grid">
-            {breakdownItems.map((item) => (
-              <div
-                key={item.label}
-                className="breakdown-item"
-                style={{ "--item-color": item.color, "--item-bg": item.bg }}
-              >
-                <div className="breakdown-item__header">
-                  <i
-                    className="breakdown-item__icon"
-                    style={{ color: item.color, background: item.bg }}
-                    aria-hidden="true"
-                  >
-                    <span>{item.logo}</span>
-                  </i>
-                </div>
+        <section
+          className="gov-kpi-grid gov-kpi-grid--secondary"
+          aria-busy={loading}
+        >
+          {operationalKpis.map((item) => {
+            const Icon = item.icon;
+            return (
+            <article
+              className="enterprise-card gov-kpi"
+              style={{ "--kpi-color": item.color }}
+              key={item.label}
+            >
+              <div className="gov-kpi__top">
                 <span>{item.label}</span>
-                <strong>{loading ? "--" : compactNumber(item.value)}</strong>
+                <i>
+                  <Icon />
+                </i>
               </div>
-            ))}
-          </div>
+              <div className="gov-kpi__value">
+                {loading ? "--" : compactNumber(item.value)}
+              </div>
+            </article>
+            );
+          })}
         </section>
 
         <div className="command-layout">

@@ -59,6 +59,8 @@ const ViewPage = () => {
   const [fetchError, setFetchError] = useState(null);
   const [addError, setAddError] = useState(null);
   const [addSuccess, setAddSuccess] = useState("");
+  const [reportError, setReportError] = useState("");
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [issuedBy, setIssuedBy] = useState({
     name: "",
     mobile: "",
@@ -241,6 +243,7 @@ const ViewPage = () => {
     setLookupSerial("");
     setFetchedBox(null);
     setAddError(null);
+    setReportError("");
     setAddSuccess("Box added successfully.");
     setTimeout(() => setAddSuccess(""), 3000);
   };
@@ -331,49 +334,66 @@ const ViewPage = () => {
   })();
 
   const handleGeneratePdf = async () => {
+    if (selectedBoxes.length === 0) {
+      setReportError(
+        "Add at least one C-Box in SERIAL NUMBER OF C-BOX RECEIVED before generating the report.",
+      );
+      return;
+    }
+
+    setReportError("");
     if (!reportRef.current) return;
 
-    const element = reportRef.current;
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-    });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const imgWidth = pageWidth - 20;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
-    pdf.save("PXE-Report.pdf");
+    setIsGeneratingReport(true);
 
-    const nextSerial = challanSerial + 1;
-    localStorage.setItem(
-      CHALLAN_SEQUENCE_STORAGE_KEY,
-      JSON.stringify({ date: getChallanDatePart(), serial: nextSerial }),
-    );
-    setChallanSerial(nextSerial);
+    try {
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+      pdf.save(`PXE-Report-${challanNumber}.pdf`);
 
-    // Clear all input fields after generating PDF
-    setIssuedBy({
-      name: "",
-      mobile: "",
-      company: "",
-      place: "",
-      date: "",
-      signatureFileName: "",
-      signaturePreview: "",
-    });
-    setReceivedBy({
-      name: "",
-      mobile: "",
-      company: "",
-      place: "",
-      date: "",
-      signatureFileName: "",
-      signaturePreview: "",
-    });
-    setSelectedBoxes([]);
-    localStorage.removeItem(SELECTED_BOXES_STORAGE_KEY);
+      const nextSerial = challanSerial + 1;
+      localStorage.setItem(
+        CHALLAN_SEQUENCE_STORAGE_KEY,
+        JSON.stringify({ date: getChallanDatePart(), serial: nextSerial }),
+      );
+      setChallanSerial(nextSerial);
+
+      // Clear all input fields after generating PDF
+      setIssuedBy({
+        name: "",
+        mobile: "",
+        company: "",
+        place: "",
+        date: "",
+        signatureFileName: "",
+        signaturePreview: "",
+      });
+      setReceivedBy({
+        name: "",
+        mobile: "",
+        company: "",
+        place: "",
+        date: "",
+        signatureFileName: "",
+        signaturePreview: "",
+      });
+      setSelectedBoxes([]);
+      localStorage.removeItem(SELECTED_BOXES_STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to generate report PDF", error);
+      setReportError("Unable to generate the report right now. Please try again.");
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -462,14 +482,14 @@ const ViewPage = () => {
                           "N/A"}
                       </td>
                       <td>
-                        {formatReportDate(fetchedBox.date || fetchedBox.createdAt)}
+                        {formatReportDate(
+                          fetchedBox.date || fetchedBox.createdAt,
+                        )}
                       </td>
                       <td>{getReportType(fetchedBox)}</td>
                       <td>{getReportTo(fetchedBox)}</td>
                       <td>{getReportFrom(fetchedBox)}</td>
-                      <td>
-                        {fetchedBox.natureOfFault || "N/A"}
-                      </td>
+                      <td>{fetchedBox.natureOfFault || "N/A"}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -723,9 +743,7 @@ const ViewPage = () => {
                   <input
                     className="form-control report-input"
                     value={receivedBy.mobile}
-                    onChange={(e) =>
-                      updateReceivedBy("mobile", e.target.value)
-                    }
+                    onChange={(e) => updateReceivedBy("mobile", e.target.value)}
                   />
                 </div>
                 <div className="report-field">
@@ -763,13 +781,24 @@ const ViewPage = () => {
             </div>
           </section>
         </div>
-        <div className="d-flex justify-content-end mt-3">
+        <div className="d-flex flex-column align-items-end mt-3">
+          {reportError && (
+            <p className="report-error mb-2" role="alert">
+              {reportError}
+            </p>
+          )}
           <button
             type="button"
-            className="btn btn-primary"
+            className={`btn btn-primary report-generate-btn ${
+              isGeneratingReport ? "is-loading" : ""
+            }`}
             onClick={handleGeneratePdf}
+            disabled={isGeneratingReport}
           >
-            Generate Report
+            {isGeneratingReport && (
+              <span className="report-generate-btn__spinner spinner-border spinner-border-sm me-2" />
+            )}
+            {isGeneratingReport ? "Generating..." : "Generate Report"}
           </button>
         </div>
       </div>

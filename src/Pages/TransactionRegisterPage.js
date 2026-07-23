@@ -710,6 +710,7 @@ const TransactionRegisterPage = () => {
                       placeholder={fieldPlaceholders[key]}
                       required={required}
                       aria-required={required}
+                      maxLength={key === "boxSerialNumber" ? 14 : undefined}
                       pattern={
                         key === "boxSerialNumber"
                           ? BOX_SERIAL_INPUT_PATTERN

@@ -23,6 +23,7 @@ const defaultAdmin = {
   mobile: "9999999999",
   department: "Enterprise Inventory",
   designation: "System Administrator",
+  assetHistoryAccess: "YES",
   role: "ADMIN",
   password: "Admin@123",
 };
@@ -90,6 +91,7 @@ export const AuthProvider = ({ children }) => {
       employeeId: user.employeeId,
       department: user.department,
       designation: user.designation,
+      assetHistoryAccess: user.assetHistoryAccess || "NO",
       role: normalizeRole(user.role),
       token: user.token || createToken(user),
     };
@@ -119,15 +121,26 @@ export const AuthProvider = ({ children }) => {
     return persistSession(matchedUser);
   }, [persistSession]);
 
-  const loginWithExternalToken = useCallback(({ id, email, token, username, role = "USER" }) =>
-    persistSession({
+  const loginWithExternalToken = useCallback(
+    ({
       id,
       email,
       token,
-      username: username || email.split("@")[0],
-      fullName: username || email.split("@")[0],
-      role,
-    }), [persistSession]);
+      username,
+      role = "USER",
+      assetHistoryAccess = "NO",
+    }) =>
+      persistSession({
+        id,
+        email,
+        token,
+        username: username || email.split("@")[0],
+        fullName: username || email.split("@")[0],
+        role,
+        assetHistoryAccess,
+      }),
+    [persistSession],
+  );
 
   const logout = useCallback(() => {
     clearStoredSession();
@@ -155,6 +168,7 @@ export const AuthProvider = ({ children }) => {
       mobile: account.mobile,
       department: account.department,
       designation: account.designation,
+      assetHistoryAccess: account.assetHistoryAccess || "NO",
       role: normalizeRole(account.role),
       password: account.password,
     };

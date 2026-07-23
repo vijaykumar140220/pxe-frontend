@@ -71,7 +71,7 @@
 }
 
 .live-table {
-  min-width: 980px;
+  min-width: 1080px;
 }
 
 .live-table th,
@@ -143,6 +143,10 @@
 
 .live-breakdown-table tbody tr {
   border-bottom: 1px solid #edf2f7;
+}
+
+.live-breakdown-table tbody tr.live-breakdown-row--highlight {
+  background: #fffaf5;
 }
 
 .live-breakdown-table tbody td {

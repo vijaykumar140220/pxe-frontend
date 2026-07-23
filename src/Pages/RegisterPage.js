@@ -11,6 +11,7 @@ const initialForm = {
   mobile: "",
   department: "",
   designation: "",
+  assetHistoryAccess: "YES",
   password: "",
   confirmPassword: "",
   role: "USER",
@@ -23,6 +24,7 @@ const fieldPlaceholders = {
   mobile: "Enter mobile number",
   department: "Enter department",
   designation: "Enter designation",
+  assetHistoryAccess: "",
   password: "Enter password",
   confirmPassword: "Confirm password",
 };
@@ -31,6 +33,7 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = () => {
     const nextErrors = {};
@@ -74,6 +77,7 @@ const RegisterPage = () => {
     event.preventDefault();
     if (!validate()) return;
 
+    setIsSubmitting(true);
     try {
       await axios.post("http://127.0.0.1:5000/auth/register", {
         ...form,
@@ -84,31 +88,14 @@ const RegisterPage = () => {
       setForm(initialForm);
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to create account");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="enterprise-page register-page">
       <div className="enterprise-container">
-        <div className="page-toolbar">
-          <div>
-            <p className="page-kicker">Role Based Access Control</p>
-            <h2 className="page-title">User Management Portal</h2>
-            <p className="page-subtitle">
-              Only authorized administrators can create PXE system accounts.
-            </p>
-          </div>
-          <div className="toolbar-actions">
-            <button
-              type="button"
-              className="enterprise-btn enterprise-btn--secondary"
-              onClick={() => navigate("/")}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-
         <form className="enterprise-card register-card" onSubmit={handleSubmit} noValidate>
           <div className="register-card__header">
             <div>
@@ -161,6 +148,18 @@ const RegisterPage = () => {
               error={errors.designation}
               onChange={handleChange}
             />
+            <div className="register-field">
+              <label>Asset History Access</label>
+              <select
+                name="assetHistoryAccess"
+                value={form.assetHistoryAccess}
+                onChange={handleChange}
+              >
+                <option value="YES">Yes</option>
+                <option value="NO">No</option>
+              </select>
+              {errors.assetHistoryAccess && <p>{errors.assetHistoryAccess}</p>}
+            </div>
             <Field
               label="Password"
               name="password"
@@ -189,8 +188,14 @@ const RegisterPage = () => {
           </div>
 
           <div className="register-actions">
-            <button type="submit" className="enterprise-btn enterprise-btn--primary">
-              Create Account
+            <button
+              type="submit"
+              className="enterprise-btn enterprise-btn--primary"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting && <span className="register-button-spinner" aria-hidden="true" />}
+              {isSubmitting ? "Creating Account..." : "Create Account"}
             </button>
             <button
               type="button"
@@ -224,7 +229,7 @@ const Field = ({ label, name, type = "text", value, error, onChange }) => (
       type={type}
       value={value}
       onChange={onChange}
-      placeholder={fieldPlaceholders[name]}
+      placeholder={fieldPlaceholders[name] || ""}
     />
     {error && <p>{error}</p>}
   </div>

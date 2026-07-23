@@ -68,6 +68,11 @@ const Header = () => {
 
     if (!passwordForm.newPassword) {
       nextErrors.newPassword = "Enter a new password";
+    } else if (
+      passwordForm.currentPassword &&
+      passwordForm.newPassword === passwordForm.currentPassword
+    ) {
+      nextErrors.newPassword = "New password cannot be the same as old password";
     } else if (!strongPassword.test(passwordForm.newPassword)) {
       nextErrors.newPassword =
         "Use 8+ chars with uppercase, lowercase, number and special character";
@@ -208,7 +213,9 @@ const Header = () => {
                 )}
               </div>
               <div className="header-profile">
-                <span>{currentUser?.username || "User"}</span>
+                <div className="header-profile__row">
+                  <span>{currentUser?.username || "User"}</span>
+                </div>
                 <strong>
                   <FiShield />{" "}
                   {currentUser?.role === "ADMIN"

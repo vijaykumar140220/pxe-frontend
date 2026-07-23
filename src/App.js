@@ -180,9 +180,9 @@ const AppContent = () => {
             <Route
               path="/asset-history"
               element={
-                <AdminRoute>
+                <ProtectedRoute>
                   <AssetHistoryPage />
-                </AdminRoute>
+                </ProtectedRoute>
               }
             />
 

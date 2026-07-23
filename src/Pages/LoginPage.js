@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { FiLock, FiMail, FiRefreshCw } from "react-icons/fi";
 import { useAuth } from "../Context/AuthContext";
 import "./Login.css";
@@ -104,6 +104,10 @@ const LoginPage = () => {
             token,
             role: res.data.user?.role || res.data.role || "USER",
             username: res.data.user?.name || res.data.username,
+            assetHistoryAccess:
+              res.data.user?.assetHistoryAccess ||
+              res.data.assetHistoryAccess ||
+              "NO",
           });
 
           dispatch({
@@ -130,8 +134,6 @@ const LoginPage = () => {
 
   return (
     <div className="login-container">
-      <Toaster position="top-right" reverseOrder={false} />
-
       <div className="login-monitor-strip">PXE- PORTAL</div>
 
       <div className="login-card">

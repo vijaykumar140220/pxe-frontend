@@ -72,6 +72,21 @@
   padding: 0 26px 28px;
 }
 
+.register-button-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: register-button-spin 700ms linear infinite;
+}
+
+@keyframes register-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 768px) {
   .register-grid {
     grid-template-columns: 1fr;

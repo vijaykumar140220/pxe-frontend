@@ -13,14 +13,11 @@ const UsersPage = () => {
 
   const getUsers = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/auth/users"
-      );
+      const res = await axios.get("http://localhost:5000/auth/users");
 
       console.log(res.data);
 
       setUsers(res.data);
-
     } catch (err) {
       console.log(err);
       alert("Failed to fetch users");
@@ -47,7 +44,9 @@ const UsersPage = () => {
           <div>
             <p className="page-kicker">Access Control</p>
             <h2 className="page-title">Registered Users</h2>
-            <p className="page-subtitle">Review user accounts and roles in one clean table.</p>
+            <p className="page-subtitle">
+              Review user accounts and roles in one clean table.
+            </p>
           </div>
         </div>
 
@@ -73,6 +72,12 @@ const UsersPage = () => {
                     onSort={handleSort}
                   />
                   <SortableHeader
+                    label="Asset History"
+                    sortKey="assetHistoryAccess"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
                     label="Role"
                     sortKey="role"
                     sortConfig={sortConfig}
@@ -84,7 +89,7 @@ const UsersPage = () => {
               <tbody>
                 {sortedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-4 text-muted">
+                    <td colSpan="4" className="text-center py-4 text-muted">
                       No users found.
                     </td>
                   </tr>
@@ -93,8 +98,11 @@ const UsersPage = () => {
                     <tr key={user._id || user.email}>
                       <td className="fw-semibold">{user.name}</td>
                       <td>{user.email}</td>
+                      <td>{user.assetHistoryAccess || "NO"}</td>
                       <td>
-                        <span className={`users-role users-role--${String(user.role || "user").toLowerCase()}`}>
+                        <span
+                          className={`users-role users-role--${String(user.role || "user").toLowerCase()}`}
+                        >
                           {user.role}
                         </span>
                       </td>
