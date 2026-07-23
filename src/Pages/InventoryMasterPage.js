@@ -38,7 +38,7 @@ const columns = [
 ];
 
 const fieldPlaceholders = {
-  serialNumber: "BOSS-CBOX1090",
+  serialNumber: "BOSS-CBOX000004",
   itemName: "Enter item name",
   category: "Enter category",
   invoiceNumber: "Enter invoice number",

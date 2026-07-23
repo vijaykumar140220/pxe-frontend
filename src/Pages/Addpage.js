@@ -181,7 +181,7 @@ const AddPage = () => {
                         ? "is-invalid"
                         : ""
                     }`}
-                    placeholder="Enter serial number"
+                    placeholder="BOSS-CBOX000004"
                     onChange={(event) =>
                       formik.setFieldValue("pxeSerialNumber", normalizeBoxSerial(event.target.value))
                     }

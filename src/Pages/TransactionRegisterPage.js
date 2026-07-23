@@ -50,7 +50,7 @@ const columns = [
 
 const fieldPlaceholders = {
   date: "Select date",
-  boxSerialNumber: "BOSS-CBOX1090",
+  boxSerialNumber: "BOSS-CBOX000004",
   transactionType: "Select transaction type",
   fromName: "Enter sender name",
   fromOffice: "Select source office",
@@ -710,7 +710,7 @@ const TransactionRegisterPage = () => {
                       placeholder={fieldPlaceholders[key]}
                       required={required}
                       aria-required={required}
-                      maxLength={key === "boxSerialNumber" ? 14 : undefined}
+                      maxLength={key === "boxSerialNumber" ? 15 : undefined}
                       pattern={
                         key === "boxSerialNumber"
                           ? BOX_SERIAL_INPUT_PATTERN

@@ -238,7 +238,7 @@ const AssetHistoryPage = () => {
             <input
               value={serialInput}
               onChange={(event) => setSerialInput(event.target.value)}
-              placeholder="BOSS-CBOX0024"
+              placeholder="BOSS-CBOX000004"
             />
           </label>
           <button
