@@ -111,6 +111,7 @@ const RegisterPage = () => {
               value={form.fullName}
               error={errors.fullName}
               onChange={handleChange}
+              required
             />
             <Field
               label="Employee ID"
@@ -118,6 +119,7 @@ const RegisterPage = () => {
               value={form.employeeId}
               error={errors.employeeId}
               onChange={handleChange}
+              required
             />
             <Field
               label="Email Address"
@@ -126,6 +128,7 @@ const RegisterPage = () => {
               value={form.email}
               error={errors.email}
               onChange={handleChange}
+              required
             />
             <Field
               label="Mobile Number"
@@ -133,6 +136,7 @@ const RegisterPage = () => {
               value={form.mobile}
               error={errors.mobile}
               onChange={handleChange}
+              required
             />
             <Field
               label="Department"
@@ -140,6 +144,7 @@ const RegisterPage = () => {
               value={form.department}
               error={errors.department}
               onChange={handleChange}
+              required
             />
             <Field
               label="Designation"
@@ -147,6 +152,7 @@ const RegisterPage = () => {
               value={form.designation}
               error={errors.designation}
               onChange={handleChange}
+              required
             />
             <div className="register-field">
               <label>Asset History Access</label>
@@ -167,6 +173,7 @@ const RegisterPage = () => {
               value={form.password}
               error={errors.password}
               onChange={handleChange}
+              required
             />
             <Field
               label="Confirm Password"
@@ -175,6 +182,7 @@ const RegisterPage = () => {
               value={form.confirmPassword}
               error={errors.confirmPassword}
               onChange={handleChange}
+              required
             />
 
             <div className="register-field">
@@ -221,9 +229,12 @@ const RegisterPage = () => {
   );
 };
 
-const Field = ({ label, name, type = "text", value, error, onChange }) => (
+const Field = ({ label, name, type = "text", value, error, onChange, required }) => (
   <div className="register-field">
-    <label>{label}</label>
+    <label>
+      {label}
+      {required && <span className="required-star"> *</span>}
+    </label>
     <input
       name={name}
       type={type}

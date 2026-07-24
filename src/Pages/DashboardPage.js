@@ -39,6 +39,7 @@ import {
   FiTool,
   FiTruck,
   FiUsers,
+  FiX,
 } from "react-icons/fi";
 import { useRole } from "../Context/RoleContext";
 import "./DashboardPage.css";
@@ -359,6 +360,63 @@ const buildAnalytics = (inventory, transactions) => {
   };
 };
 
+const getBreakdownSerials = (analytics, groupKey) => {
+  const isServiceable = (record) =>
+    normalize(record.boxStatus) === "SERVICEABLE";
+  const isUnserviceable = (record) =>
+    ["UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"].includes(
+      normalize(record.boxStatus),
+    );
+  const isLoan = (record) => {
+    const office = normalize(record.toOffice || "");
+    const transType = normalize(record.transactionType || "");
+    return office === "LOAN" || office.includes("LOAN") || transType.includes("LOAN");
+  };
+  const isLocation = (record, key) => {
+    const office = normalize(record.toOffice || "");
+    const location = normalize(record.toLocation || "");
+    return office === key || location === key || office.includes(key) || location.includes(key);
+  };
+  const getStatusMeta = (record) => {
+    const status = normalize(record.boxStatus);
+    if (status === "SERVICEABLE") return { label: "Serviceable", tone: "success" };
+    if (["UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"].includes(status))
+      return { label: "Un-Serviceable", tone: "danger" };
+    if (status === "POLICE CUSTODY") return { label: "Police Custody", tone: "neutral" };
+    if (status === "TAMPERED" || status === "TEMPERED")
+      return { label: "Tampered", tone: "neutral" };
+    return { label: "Asset", tone: "neutral" };
+  };
+
+  const matches = (record) => {
+    if (groupKey === "cDAC") {
+      return (
+        (normalize(record.toOffice || "") === "STOCK" &&
+          (isServiceable(record) || isUnserviceable(record))) ||
+        isLoan(record)
+      );
+    }
+    if (groupKey === "eduquity") {
+      return isLocation(record, "EDUQUITY");
+    }
+    if (groupKey === "aheesa") {
+      return isLocation(record, "AHEESA");
+    }
+    if (groupKey === "notTraced") {
+      return ["NOT TRACED", "NOT-TRACED"].includes(normalize(record.boxStatus));
+    }
+    return false;
+  };
+
+  return analytics.latest
+    .filter(matches)
+    .map((record) => ({
+      serial: record.boxSerialNumber || record.serialNumber,
+      ...getStatusMeta(record),
+    }))
+    .filter((item) => item.serial);
+};
+
 const ChartPanel = ({ title, subtitle, children, action }) => (
   <section className="enterprise-card gov-chart-card">
     <div className="gov-card-heading">
@@ -409,6 +467,7 @@ const DashboardPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState({ key: "date", direction: "desc" });
+  const [selectedBreakdown, setSelectedBreakdown] = useState(null);
 
   const fetchDashboard = useCallback(async (notify = false) => {
     try {
@@ -493,31 +552,34 @@ const DashboardPage = () => {
 
   const breakdownItems = [
     {
+      key: "cDAC",
       label: "C-DAC",
       logo: "CD",
       value: analytics.cDAC,
       color: "#1e40af",
       bg: "#dbeafe",
       details: [
-        ["Stock (Ser)", analytics.cDACStockSer],
-        ["Stock (Un-Ser)", analytics.cDACStockUnSer],
+        ["Stock (Serviceable)", analytics.cDACStockSer],
+        ["Stock (Un-Serviceable)", analytics.cDACStockUnSer],
         ["On Loan", analytics.cDACOnLoan],
       ],
     },
     {
+      key: "eduquity",
       label: "EDUQUITY",
       logo: "EQ",
       value: analytics.eduquity,
       color: "#16a34a",
       bg: "#dcfce7",
       details: [
-        ["Eduquity (Ser)", analytics.eduquitySer],
-        ["Eduquity (Un-Ser)", analytics.eduquityUnSer],
-        ["Eduquity (Tampered)", analytics.eduquityTampered],
-        ["Eduquity (Police Custody)", analytics.eduquityPoliceCustody],
+        ["Serviceable", analytics.eduquitySer],
+        ["Un-Serviceable", analytics.eduquityUnSer],
+        ["Tampered", analytics.eduquityTampered],
+        ["Police Custody", analytics.eduquityPoliceCustody],
       ],
     },
     {
+      key: "aheesa",
       label: "AHEESA",
       logo: "AH",
       value: analytics.aheesa,
@@ -525,6 +587,7 @@ const DashboardPage = () => {
       bg: "#ede9fe",
     },
     {
+      key: "notTraced",
       label: "Not Traced",
       logo: "NT",
       value: analytics.notTraced,
@@ -670,6 +733,15 @@ const DashboardPage = () => {
         return sort.direction === "asc" ? result : -result;
       });
   }, [analytics.recent, search, statusFilter, sort]);
+  const selectedBreakdownData = useMemo(() => {
+    if (!selectedBreakdown) return null;
+    const item = breakdownItems.find((entry) => entry.key === selectedBreakdown);
+    if (!item) return null;
+    return {
+      ...item,
+      serials: getBreakdownSerials(analytics, selectedBreakdown),
+    };
+  }, [analytics, breakdownItems, selectedBreakdown]);
   const pageSize = 8;
   const totalPages = Math.max(
     1,
@@ -758,9 +830,6 @@ const DashboardPage = () => {
             </p>
           </div>
           <div className="command-titlebar__actions">
-            <span className="database-status">
-              <i /> Database synchronized
-            </span>
             <button
               type="button"
               className="enterprise-btn enterprise-btn--primary"
@@ -781,6 +850,21 @@ const DashboardPage = () => {
                 className="enterprise-card gov-kpi"
                 style={{ "--kpi-color": item.color }}
                 key={item.label}
+                role={item.key ? "button" : undefined}
+                tabIndex={item.key ? 0 : undefined}
+                onClick={
+                  item.key ? () => setSelectedBreakdown(item.key) : undefined
+                }
+                onKeyDown={
+                  item.key
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedBreakdown(item.key);
+                        }
+                      }
+                    : undefined
+                }
               >
                 <div className="gov-kpi__top">
                   <span>{item.label}</span>
@@ -1211,11 +1295,8 @@ const DashboardPage = () => {
                     <FiCheckCircle />
                   </i>
                   <div>
-                    <strong>Database synchronized</strong>
-                    <span>
-                      {compactNumber(analytics.total)} inventory records
-                      verified.
-                    </span>
+                    <strong>Inventory verified</strong>
+                    <span>{compactNumber(analytics.total)} records verified.</span>
                   </div>
                 </article>
               </div>
@@ -1271,18 +1352,58 @@ const DashboardPage = () => {
                 )}
               </div>
             </section>
-            <section className="enterprise-card rail-panel audit-panel">
-              <FiShield />
-              <div>
-                <strong>Audit Controls Active</strong>
-                <span>
-                  All dashboard activity is monitored under Government security
-                  policy.
-                </span>
-              </div>
-            </section>
           </aside>
         </div>
+
+        {selectedBreakdownData && (
+          <div
+            className="dashboard-modal-backdrop"
+            role="presentation"
+            onClick={() => setSelectedBreakdown(null)}
+          >
+            <div
+              className="dashboard-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${selectedBreakdownData.label} serial numbers`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="dashboard-modal__header">
+                <div>
+                  <h3>{selectedBreakdownData.label}</h3>
+                  <p>
+                    {compactNumber(selectedBreakdownData.value)} box serial
+                    numbers
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="dashboard-modal__close"
+                  onClick={() => setSelectedBreakdown(null)}
+                  aria-label="Close popup"
+                >
+                  <FiX />
+                </button>
+              </div>
+              <div className="dashboard-modal__body">
+                {selectedBreakdownData.serials.length === 0 ? (
+                  <p className="dashboard-modal__empty">No serial numbers found.</p>
+                ) : (
+                  <ul className="dashboard-modal__list">
+                    {selectedBreakdownData.serials.map((item) => (
+                      <li key={item.serial} className="dashboard-modal__item">
+                        <span className="dashboard-modal__serial">{item.serial}</span>
+                        <span className={`dashboard-modal__status dashboard-modal__status--${item.tone}`}>
+                          {item.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* <p className="dashboard-updated"><FiDatabase /> Live database snapshot: {new Date().toLocaleString("en-IN")}</p> */}
       </div>

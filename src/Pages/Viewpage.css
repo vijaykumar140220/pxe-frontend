@@ -164,17 +164,56 @@
 }
 
 .report-voucher {
-  padding: 24px;
-  font-size: 1rem;
+  padding: 22px 28px;
+  font-size: 0.98rem;
+  width: 100%;
+  max-width: none;
+  margin: 12px 0 0;
+  background: #ffffff;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  page-break-after: auto;
 }
 
 .report-header-top {
   border-color: #000 !important;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) auto;
+  align-items: start;
+  column-gap: 16px;
+  margin-bottom: 18px !important;
+  padding-bottom: 14px !important;
+}
+
+.report-left,
+.report-right {
+  min-width: 0;
+}
+
+.report-left {
+  display: flex;
+  align-items: flex-start;
 }
 
 .report-logo-cdac {
   max-height: 70px;
   object-fit: contain;
+}
+
+.report-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  min-height: 70px;
+}
+
+.report-logo-label {
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .company-name {
@@ -194,6 +233,7 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
+  text-transform: uppercase;
 }
 
 .challan-ref {
@@ -201,9 +241,28 @@
   color: #64748b;
 }
 
+.report-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  text-align: right;
+  padding-top: 6px;
+}
+
 .report-voucher .voucher-title {
   font-size: 1.22rem;
   letter-spacing: 0.08em;
+  font-weight: 800;
+  display: inline-block;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #000;
+}
+
+.report-voucher .voucher-title,
+.report-voucher .report-serial-title,
+.report-voucher .row.g-4.mb-4 > .col-md-6 > h5.signature-heading {
+  font-size: 1.22rem;
   font-weight: 800;
 }
 
@@ -213,10 +272,71 @@
   padding: 8px;
   font-size: 0.98rem;
   text-align: center;
+  word-break: break-word;
+}
+
+.report-table th:nth-child(2),
+.report-table td:nth-child(2) {
+  text-align: left;
 }
 
 .report-table th {
   background: #f8fafc;
+}
+
+.report-voucher > .mb-4 {
+  margin: 4px 0 !important;
+}
+
+.report-voucher .report-serial-section {
+  margin: 22px 0 2px !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0px !important;
+  page-break-inside: avoid;
+}
+
+.report-voucher .report-serial-title {
+  margin: 0 0 8px !important;
+  padding: 0 0 4px !important;
+  text-align: center;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  display: inline-block;
+  border-bottom: 1px solid #000;
+  width: auto;
+  align-self: center;
+}
+
+.report-voucher .report-serial-table {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.report-voucher .report-serial-table .serial-table {
+  width: 100%;
+  margin: 0 !important;
+}
+
+.report-voucher .serial-table th,
+.report-voucher .serial-table td {
+  padding: 4px 5px;
+}
+
+.report-voucher .report-serial-section {
+  width: 100%;
+}
+
+.report-voucher .mb-4 h5 {
+  margin: 4px 0 4px !important;
+}
+
+.report-voucher .table-responsive {
+  margin-bottom: 12px !important;
 }
 
 .serial-table th,
@@ -230,12 +350,17 @@
   text-align: center;
 }
 
+.serial-table th:nth-child(4),
+.serial-table td:nth-child(4) {
+  text-align: left;
+}
+
 .report-field {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: 140px minmax(0, 1fr);
   align-items: center;
-  column-gap: 12px;
-  margin-bottom: 12px;
+  column-gap: 10px;
+  margin-bottom: 8px;
 }
 
 .report-field label {
@@ -326,15 +451,56 @@
 }
 
 .report-voucher .table-responsive {
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 
-.report-voucher .btn {
-  min-width: 160px;
+.report-voucher .report-table.mb-4,
+.report-voucher .table-responsive.mb-3,
+.report-voucher .report-serial-table {
+  margin-bottom: 4px !important;
+}
+
+.report-voucher .text-center.mb-4 {
+  margin: 0 0 4px !important;
+}
+
+.report-voucher h5 {
+  margin: 6px 0 6px;
+}
+
+.report-voucher .row.g-4.mb-4 {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between;
+  margin: 6px 0 !important;
+  gap: 1rem !important;
+}
+
+.report-voucher .row.g-4.mb-4 > .col-md-6 {
+  flex: 1 1 50% !important;
+  max-width: 50% !important;
+  min-width: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.report-voucher .row.g-4.mb-4 > .col-md-6 > h5 {
+  text-transform: uppercase;
+}
+
+.report-voucher .row.g-4.mb-4 > .col-md-6 > h5.signature-heading {
+  display: inline-block;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #000;
+}
+
+.report-voucher .report-field {
+  margin-bottom: 6px;
 }
 
 .report-voucher {
   color: #0f172a;
+  text-transform: uppercase;
 }
 
 .report-voucher,
@@ -395,7 +561,12 @@
   .report-voucher .voucher-title {
     font-size: 16pt !important;
     letter-spacing: 0.06em !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .report-voucher .report-serial-title {
+    margin-bottom: 8px !important;
+    padding-bottom: 4px !important;
   }
 
   .report-voucher h5 {
@@ -410,6 +581,19 @@
   .report-voucher .report-table td {
     font-size: 11pt !important;
     padding: 10px 8px !important;
+  }
+
+  .report-voucher .table-responsive {
+    margin-bottom: 10px !important;
+  }
+
+  .report-voucher .report-serial-section {
+    margin-top: 18px !important;
+  }
+
+  .report-voucher .report-serial-title {
+    margin-bottom: 8px !important;
+    padding-bottom: 4px !important;
   }
 
   .report-voucher .serial-table th,

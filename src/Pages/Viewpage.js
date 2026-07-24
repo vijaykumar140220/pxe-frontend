@@ -39,7 +39,8 @@ const getCurrentChallanSerial = () => {
   return 1;
 };
 
-const createChallanNumber = (serial) => `${getChallanDatePart()}${serial}`;
+const createChallanNumber = (serial) =>
+  `${getChallanDatePart()}${String(serial).padStart(2, "0")}`;
 
 const ViewPage = () => {
   const reportRef = useRef(null);
@@ -348,16 +349,59 @@ const ViewPage = () => {
 
     try {
       const element = reportRef.current;
+      const originalWidth = element.style.width;
+      const originalMaxWidth = element.style.maxWidth;
+      const originalMarginLeft = element.style.marginLeft;
+      const originalMarginRight = element.style.marginRight;
+
+      element.style.width = "210mm";
+      element.style.maxWidth = "210mm";
+      element.style.marginLeft = "auto";
+      element.style.marginRight = "auto";
+
+      const initialScrollY = window.scrollY;
+      window.scrollTo(0, 0);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: "#ffffff",
+        useCORS: true,
+        scrollY: 0,
+        width: element.offsetWidth,
+        height: element.offsetHeight,
       });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
+
+      element.style.width = originalWidth;
+      element.style.maxWidth = originalMaxWidth;
+      element.style.marginLeft = originalMarginLeft;
+      element.style.marginRight = originalMarginRight;
+      window.scrollTo(0, initialScrollY);
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const pdfWidth = pageWidth - margin * 2;
+      const pdfHeight = pageHeight - margin * 2;
+
+      const imgData = canvas.toDataURL("image/png");
+      const pageImageHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      if (pageImageHeight <= pdfHeight) {
+        pdf.addImage(imgData, "PNG", margin, margin, pdfWidth, pageImageHeight);
+      } else {
+        const scale = pdfHeight / pageImageHeight;
+        const fitWidth = pdfWidth * scale;
+        const fitHeight = pdfHeight;
+        const posX = (pageWidth - fitWidth) / 2;
+        pdf.addImage(imgData, "PNG", posX, margin, fitWidth, fitHeight);
+      }
+
       pdf.save(`PXE-Report-${challanNumber}.pdf`);
 
       const nextSerial = challanSerial + 1;
@@ -390,7 +434,9 @@ const ViewPage = () => {
       localStorage.removeItem(SELECTED_BOXES_STORAGE_KEY);
     } catch (error) {
       console.error("Failed to generate report PDF", error);
-      setReportError("Unable to generate the report right now. Please try again.");
+      setReportError(
+        "Unable to generate the report right now. Please try again.",
+      );
     } finally {
       setIsGeneratingReport(false);
     }
@@ -578,29 +624,12 @@ const ViewPage = () => {
           <section className="enterprise-card lookup-card mt-4 report-voucher">
             <div className="report-header-top d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
               <div className="report-left">
-                <img
-                  src="/OIP (1).webp"
-                  alt="CDAC logo"
-                  className="report-logo-cdac"
-                />
-                <div className="company-info mt-2">
-                  <h6 className="company-name mb-1">
-                    Centre for Development of Advanced Computing
-                  </h6>
-                  <p
-                    className="company-address mb-0"
-                    style={{ fontSize: "0.7rem", lineHeight: "1.4" }}
-                  >
-                    Tidel Park, 8th Floor,
-                    <br />
-                    'D' Block(North &amp; South),
-                    <br />
-                    No.4 Rajiv Gandhi Salai, Taramani,
-                    <br />
-                    Chennai- 600113, Tamilnadu (India)
-                    <br />
-                    Phone: +91-44-22542226/7 / Fax: +91-44-22542294
-                  </p>
+                <div className="report-logo-wrap d-flex align-items-center">
+                  <img
+                    src="/Logo%201.png"
+                    alt="Report logo"
+                    className="report-logo-cdac"
+                  />
                 </div>
               </div>
               <div className="report-right text-end">
@@ -609,23 +638,25 @@ const ViewPage = () => {
               </div>
             </div>
             <div className="text-center mb-4">
-              <h3 className="voucher-title">ISSUE VOUCHER FOR NG-PXE SERVER</h3>
+              <h3 className="voucher-title">
+                ISSUE VOUCHER FOR NG-PXE SERVER AND ACCESSORIES
+              </h3>
             </div>
 
             <div className="table-responsive">
               <table className="table table-bordered report-table mb-4">
                 <thead>
                   <tr>
-                    <th>S No</th>
+                    <th>SL.NO</th>
                     <th>Item</th>
-                    <th>Denomination of Qty</th>
+                    <th>DOQ</th>
                     <th>QTY</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>01</td>
-                    <td>C-Box</td>
+                    <td>NG-PXE SERVER</td>
                     <td>EACH</td>
                     <td>{cboxQuantity || 0}</td>
                   </tr>
@@ -645,14 +676,16 @@ const ViewPage = () => {
               </table>
             </div>
 
-            <div className="mb-4">
-              <h5 className="mb-3">SERIAL NUMBER OF C-BOX RECEIVED</h5>
-              <div className="table-responsive mb-3">
-                <table className="table table-bordered report-table">
+            <div className="mb-4 report-serial-section">
+              <h5 className="report-serial-title">
+                SERIAL NUMBER OF NG-PXE SERVERS
+              </h5>
+              <div className="table-responsive report-serial-table mb-3">
+                <table className="table table-bordered report-table serial-table">
                   <thead>
                     <tr>
-                      <th>S.No</th>
-                      <th>Box Serial</th>
+                      <th>SL.NO</th>
+                      <th>NG-PXE SERVER</th>
                       <th>Status</th>
                       <th>Nature of Fault</th>
                     </tr>
@@ -673,7 +706,7 @@ const ViewPage = () => {
 
             <div className="row g-4 mb-4">
               <div className="col-md-6">
-                <h5>Issued By</h5>
+                <h5 className="signature-heading">Issued By</h5>
                 <div className="report-field">
                   <label>Name</label>
                   <input
@@ -725,7 +758,7 @@ const ViewPage = () => {
                 </div>
               </div>
               <div className="col-md-6">
-                <h5>Received By</h5>
+                <h5 className="signature-heading">Received By</h5>
                 <div className="report-field">
                   <label>Name</label>
                   <input

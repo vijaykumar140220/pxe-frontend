@@ -41,6 +41,11 @@
   text-transform: uppercase;
 }
 
+.required-star {
+  color: #dc2626;
+  font-weight: 900;
+}
+
 .register-field input,
 .register-field select {
   min-height: 46px;

@@ -237,14 +237,6 @@ const Header = () => {
           )}
         </div>
       </div>
-      {isAuthenticated && (
-        <div className="government-security-bar">
-          <FiShield />
-          <span>
-            Authorized Personnel Only. All activities are monitored and audited.
-          </span>
-        </div>
-      )}
       {resetOpen && (
         <div
           className="password-modal"
