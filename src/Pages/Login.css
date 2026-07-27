@@ -3,6 +3,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 0 18px 24px;
   background:
     linear-gradient(180deg, #dcebff 0, #f3f8ff 110px, #eef4fb 100%),
@@ -29,7 +30,7 @@
 .login-card {
   width: 100%;
   max-width: 520px;
-  padding: 38px 40px 34px;
+  padding: 30px 50px 40px;
   background: #ffffff;
   border: 1px solid #c9d8ea;
   border-radius: 8px;
@@ -37,7 +38,7 @@
 }
 
 .login-card__heading {
-  margin-bottom: 28px;
+  margin-bottom: 35px;
   text-align: center;
 }
 
@@ -109,7 +110,7 @@
 
 .login-input {
   width: 100%;
-  min-height: 43px;
+  min-height: 48px;
   padding: 10px 36px 10px 13px;
   font-size: 0.84rem;
   border: none;
@@ -273,6 +274,7 @@
   color: #92400e;
   font-size: 0.72rem;
   line-height: 1.45;
+  text-align: center;
 }
 
 .security-note strong {

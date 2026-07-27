@@ -134,12 +134,10 @@ const LoginPage = () => {
 
   return (
     <div className="login-container">
-      <div className="login-monitor-strip">PXE- PORTAL</div>
-
+    
       <div className="login-card">
         <div className="login-card__heading">
-          <h2 className="login-title">System Login</h2>
-          {/* <p className="login-subtitle">
+                    {/* <p className="login-subtitle">
             Enter your organizational credentials to proceed
           </p> */}
         </div>
@@ -243,7 +241,7 @@ const LoginPage = () => {
         </form>
 
         <div className="security-note">
-          <strong>Security Protocol:</strong> If You Forget your password please
+          If You Forget your password please
           Contact Admin.
         </div>
 

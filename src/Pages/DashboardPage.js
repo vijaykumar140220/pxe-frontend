@@ -360,7 +360,7 @@ const buildAnalytics = (inventory, transactions) => {
   };
 };
 
-const getBreakdownSerials = (analytics, groupKey) => {
+const getBreakdownSerials = (analytics, groupKey, statusKey = "all") => {
   const isServiceable = (record) =>
     normalize(record.boxStatus) === "SERVICEABLE";
   const isUnserviceable = (record) =>
@@ -379,17 +379,38 @@ const getBreakdownSerials = (analytics, groupKey) => {
   };
   const getStatusMeta = (record) => {
     const status = normalize(record.boxStatus);
-    if (status === "SERVICEABLE") return { label: "Serviceable", tone: "success" };
+    const loan = isLoan(record);
+    if (status === "SERVICEABLE")
+      return { key: "serviceable", label: "Serviceable", tone: "success" };
     if (["UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"].includes(status))
-      return { label: "Un-Serviceable", tone: "danger" };
-    if (status === "POLICE CUSTODY") return { label: "Police Custody", tone: "neutral" };
+      return { key: "unserviceable", label: "Un-Serviceable", tone: "danger" };
+    if (status === "POLICE CUSTODY")
+      return { key: "policeCustody", label: "Police Custody", tone: "neutral" };
     if (status === "TAMPERED" || status === "TEMPERED")
-      return { label: "Tampered", tone: "neutral" };
-    return { label: "Asset", tone: "neutral" };
+      return { key: "tampered", label: "Tampered", tone: "neutral" };
+    if (loan || status === "LOAN" || status === "ON LOAN")
+      return { key: "onLoan", label: "On Loan", tone: "neutral" };
+    return { key: "asset", label: "Asset", tone: "neutral" };
   };
 
   const matches = (record) => {
+    const wantsServiceable = statusKey === "serviceable";
+    const wantsUnserviceable = statusKey === "unserviceable";
+    const wantsTampered = statusKey === "tampered";
+    const wantsPoliceCustody = statusKey === "policeCustody";
+    const wantsOnLoan = statusKey === "onLoan";
     if (groupKey === "cDAC") {
+      if (wantsOnLoan) return isLoan(record);
+      if (wantsServiceable)
+        return (
+          normalize(record.toOffice || "") === "STOCK" && isServiceable(record)
+        );
+      if (wantsUnserviceable)
+        return (
+          normalize(record.toOffice || "") === "STOCK" &&
+          isUnserviceable(record)
+        );
+      if (statusKey !== "all") return false;
       return (
         (normalize(record.toOffice || "") === "STOCK" &&
           (isServiceable(record) || isUnserviceable(record))) ||
@@ -397,6 +418,20 @@ const getBreakdownSerials = (analytics, groupKey) => {
       );
     }
     if (groupKey === "eduquity") {
+      if (wantsServiceable) return isLocation(record, "EDUQUITY") && isServiceable(record);
+      if (wantsUnserviceable)
+        return isLocation(record, "EDUQUITY") && isUnserviceable(record);
+      if (wantsTampered)
+        return (
+          isLocation(record, "EDUQUITY") &&
+          ["TAMPERED", "TEMPERED"].includes(normalize(record.boxStatus))
+        );
+      if (wantsPoliceCustody)
+        return (
+          isLocation(record, "EDUQUITY") &&
+          normalize(record.boxStatus) === "POLICE CUSTODY"
+        );
+      if (statusKey !== "all") return false;
       return isLocation(record, "EDUQUITY");
     }
     if (groupKey === "aheesa") {
@@ -410,11 +445,37 @@ const getBreakdownSerials = (analytics, groupKey) => {
 
   return analytics.latest
     .filter(matches)
-    .map((record) => ({
-      serial: record.boxSerialNumber || record.serialNumber,
-      ...getStatusMeta(record),
-    }))
+    .map((record) => {
+      const statusMeta = getStatusMeta(record);
+      return {
+        serial: record.boxSerialNumber || record.serialNumber,
+        ...statusMeta,
+      };
+    })
     .filter((item) => item.serial);
+};
+
+const getBreakdownStatusOptions = (groupKey) => {
+  if (groupKey === "cDAC") {
+    return [
+      { key: "all", label: "All" },
+      { key: "serviceable", label: "Serviceable" },
+      { key: "unserviceable", label: "Un-Serviceable" },
+      { key: "onLoan", label: "On Loan" },
+    ];
+  }
+
+  if (groupKey === "eduquity") {
+    return [
+      { key: "all", label: "All" },
+      { key: "serviceable", label: "Serviceable" },
+      { key: "unserviceable", label: "Un-Serviceable" },
+      { key: "tampered", label: "Tampered" },
+      { key: "policeCustody", label: "Police Custody" },
+    ];
+  }
+
+  return [{ key: "all", label: "All" }];
 };
 
 const ChartPanel = ({ title, subtitle, children, action }) => (
@@ -468,6 +529,8 @@ const DashboardPage = () => {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState({ key: "date", direction: "desc" });
   const [selectedBreakdown, setSelectedBreakdown] = useState(null);
+  const [selectedBreakdownStatus, setSelectedBreakdownStatus] =
+    useState("all");
 
   const fetchDashboard = useCallback(async (notify = false) => {
     try {
@@ -737,11 +800,20 @@ const DashboardPage = () => {
     if (!selectedBreakdown) return null;
     const item = breakdownItems.find((entry) => entry.key === selectedBreakdown);
     if (!item) return null;
+    const statusOption = getBreakdownStatusOptions(selectedBreakdown).find(
+      (option) => option.key === selectedBreakdownStatus,
+    );
     return {
       ...item,
-      serials: getBreakdownSerials(analytics, selectedBreakdown),
+      serials: getBreakdownSerials(
+        analytics,
+        selectedBreakdown,
+        selectedBreakdownStatus,
+      ),
+      statusOptions: getBreakdownStatusOptions(selectedBreakdown),
+      selectedStatusLabel: statusOption?.label || "All",
     };
-  }, [analytics, breakdownItems, selectedBreakdown]);
+  }, [analytics, breakdownItems, selectedBreakdown, selectedBreakdownStatus]);
   const pageSize = 8;
   const totalPages = Math.max(
     1,
@@ -853,7 +925,12 @@ const DashboardPage = () => {
                 role={item.key ? "button" : undefined}
                 tabIndex={item.key ? 0 : undefined}
                 onClick={
-                  item.key ? () => setSelectedBreakdown(item.key) : undefined
+                  item.key
+                    ? () => {
+                        setSelectedBreakdown(item.key);
+                        setSelectedBreakdownStatus("all");
+                      }
+                    : undefined
                 }
                 onKeyDown={
                   item.key
@@ -861,6 +938,7 @@ const DashboardPage = () => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           setSelectedBreakdown(item.key);
+                          setSelectedBreakdownStatus("all");
                         }
                       }
                     : undefined
@@ -1358,9 +1436,12 @@ const DashboardPage = () => {
         {selectedBreakdownData && (
           <div
             className="dashboard-modal-backdrop"
-            role="presentation"
-            onClick={() => setSelectedBreakdown(null)}
-          >
+          role="presentation"
+          onClick={() => {
+            setSelectedBreakdown(null);
+            setSelectedBreakdownStatus("all");
+          }}
+        >
             <div
               className="dashboard-modal"
               role="dialog"
@@ -1376,15 +1457,40 @@ const DashboardPage = () => {
                     numbers
                   </p>
                 </div>
+                <div className="dashboard-modal__header-summary">
+                  <strong>
+                    {selectedBreakdownData.label} {selectedBreakdownData.selectedStatusLabel}
+                  </strong>
+                  <span>{compactNumber(selectedBreakdownData.serials.length)}</span>
+                </div>
                 <button
                   type="button"
                   className="dashboard-modal__close"
-                  onClick={() => setSelectedBreakdown(null)}
+                  onClick={() => {
+                    setSelectedBreakdown(null);
+                    setSelectedBreakdownStatus("all");
+                  }}
                   aria-label="Close popup"
                 >
                   <FiX />
                 </button>
               </div>
+              {selectedBreakdownData.statusOptions.length > 1 && (
+                <div className="dashboard-modal__filters" role="tablist">
+                  {selectedBreakdownData.statusOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      className={`dashboard-modal__filter ${
+                        selectedBreakdownStatus === option.key ? "is-active" : ""
+                      }`}
+                      onClick={() => setSelectedBreakdownStatus(option.key)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="dashboard-modal__body">
                 {selectedBreakdownData.serials.length === 0 ? (
                   <p className="dashboard-modal__empty">No serial numbers found.</p>

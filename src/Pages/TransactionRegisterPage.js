@@ -33,6 +33,17 @@ const initialForm = {
 
 const importBlankValue = "\u200B";
 
+const renderHoverContent = (value) => {
+  const text = displayValue(value);
+  const words = text.split(/\s+/).filter(Boolean);
+  const preview = words.length > 2 ? `${words.slice(0, 2).join(" ")}...` : text;
+  return (
+    <span className="transaction-tooltip" data-tooltip={text}>
+      {preview}
+    </span>
+  );
+};
+
 const columns = [
   { key: "date", label: "Date", required: true },
   { key: "boxSerialNumber", label: "Box Serial Number", required: true },
@@ -544,9 +555,7 @@ const TransactionRegisterPage = () => {
       "To (Office)": displayValue(record.toOffice),
       "To (Location)": displayValue(record.toLocation),
       "Box Status": displayValue(record.boxStatus),
-      "Nature of Fault": displayValue(
-        record.natureOfFault || record.remarks,
-      ),
+      "Nature of Fault": displayValue(record.natureOfFault || record.remarks),
       Remarks: displayValue(record.remarks),
     }));
 
@@ -778,7 +787,7 @@ const TransactionRegisterPage = () => {
             <table className="table table-hover align-middle mb-0 custom-table transaction-table">
               <thead>
                 <tr>
-                  <th>S.No</th>
+                  <th>SL.NO</th>
                   {columns.map(({ key, label }) => (
                     <SortableHeader
                       key={key}
@@ -825,10 +834,12 @@ const TransactionRegisterPage = () => {
                       <td>{displayValue(record.toLocation)}</td>
                       <td>{displayValue(record.boxStatus)}</td>
                       <td className="remarks-column">
-                        {displayValue(record.natureOfFault || record.remarks)}
+                        {renderHoverContent(
+                          record.natureOfFault || record.remarks,
+                        )}
                       </td>
                       <td className="remarks-column">
-                        {displayValue(record.remarks)}
+                        {renderHoverContent(record.remarks)}
                       </td>
                       {isAdmin && (
                         <td className="actions-column">

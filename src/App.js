@@ -237,7 +237,11 @@ const AppContent = () => {
         </main>
       </div>
       <Footer />
-      <Toaster position="top-center" reverseOrder={false} />
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        containerStyle={{ top: 16, zIndex: 99999 }}
+      />
     </div>
   );
 };

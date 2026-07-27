@@ -48,6 +48,18 @@ const fieldPlaceholders = {
   warranty: "Enter warranty details",
 };
 
+const renderHoverContent = (value) => {
+  const text = String(value || "").trim() || "N/A";
+  const words = text.split(/\s+/).filter(Boolean);
+  const preview = words.length > 1 ? `${words[0]}...` : text;
+
+  return (
+    <span className="inventory-tooltip" data-tooltip={text}>
+      {preview}
+    </span>
+  );
+};
+
 const getCellValue = (row, labels) => {
   const normalizeHeader = (value) =>
     String(value || "")
@@ -606,7 +618,7 @@ const InventoryMasterPage = () => {
                       <td>{record.invoiceNumber}</td>
                       <td>{record.purchaseDate}</td>
                       <td>{record.purchasePrice}</td>
-                      <td>{record.vendor}</td>
+                      <td className="vendor-column">{renderHoverContent(record.vendor)}</td>
                       <td>{record.warranty}</td>
                       <td>
                         <div className="master-actions">

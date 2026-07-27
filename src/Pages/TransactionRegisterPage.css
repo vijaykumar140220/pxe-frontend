@@ -187,15 +187,68 @@
 
 .transaction-table th.remarks-column,
 .transaction-table td.remarks-column {
-  min-width: 360px;
-  max-width: 620px;
+  min-width: 220px;
+  max-width: 320px;
   text-align: center;
   white-space: normal;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .transaction-table td.remarks-column {
   overflow-wrap: anywhere;
   word-break: normal;
+}
+
+.transaction-tooltip {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  cursor: help;
+}
+
+.transaction-tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  z-index: 20;
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #ffffff;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.transaction-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-style: solid;
+  border-color: rgba(15, 23, 42, 0.96) transparent transparent transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.transaction-tooltip:hover::before,
+.transaction-tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .transaction-table th.actions-column,

@@ -1,7 +1,8 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import toast from "react-hot-toast";
 import "./Viewpage.css";
 import { getBoxRemarkText } from "../utils/reportData";
 
@@ -59,7 +60,6 @@ const ViewPage = () => {
   });
   const [fetchError, setFetchError] = useState(null);
   const [addError, setAddError] = useState(null);
-  const [addSuccess, setAddSuccess] = useState("");
   const [reportError, setReportError] = useState("");
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [issuedBy, setIssuedBy] = useState({
@@ -214,7 +214,6 @@ const ViewPage = () => {
       )
     ) {
       setAddError("This box is already added to the report.");
-      setAddSuccess("");
       return;
     }
 
@@ -245,8 +244,7 @@ const ViewPage = () => {
     setFetchedBox(null);
     setAddError(null);
     setReportError("");
-    setAddSuccess("Box added successfully.");
-    setTimeout(() => setAddSuccess(""), 3000);
+    toast.success("Box added successfully.");
   };
 
   const handleRemoveBox = (boxId) => {
@@ -459,10 +457,10 @@ const ViewPage = () => {
         <section className="enterprise-card lookup-card">
           <div className="row g-3 align-items-end">
             <div className="col-md-4">
-              <label className="filter-label">Box Number</label>
+              <label className="filter-label">NG-PXE SERVER Number</label>
               <input
                 className="form-control"
-                placeholder="Enter C-box serial number"
+                placeholder="Enter NG-PXE server number"
                 value={lookupSerial}
                 onChange={(e) => setLookupSerial(e.target.value)}
               />
@@ -488,15 +486,6 @@ const ViewPage = () => {
           </div>
           {fetchError && <p className="mt-3 text-danger">{fetchError}</p>}
           {addError && <p className="mt-3 text-danger">{addError}</p>}
-          {addSuccess && (
-            <div
-              className="toast-message alert alert-success mt-3"
-              role="alert"
-            >
-              {addSuccess}
-            </div>
-          )}
-
           {fetchedBox && (
             <div className="mt-4">
               <h4>Fetched Box Details</h4>
@@ -637,72 +626,109 @@ const ViewPage = () => {
                 <p className="challan-ref">{challanNumber}</p>
               </div>
             </div>
-            <div className="text-center mb-4">
-              <h3 className="voucher-title">
-                ISSUE VOUCHER FOR NG-PXE SERVER AND ACCESSORIES
-              </h3>
-            </div>
+            {/* ================= ISSUE VOUCHER ================= */}
 
-            <div className="table-responsive">
-              <table className="table table-bordered report-table mb-4">
-                <thead>
-                  <tr>
-                    <th>SL.NO</th>
-                    <th>Item</th>
-                    <th>DOQ</th>
-                    <th>QTY</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>01</td>
-                    <td>NG-PXE SERVER</td>
-                    <td>EACH</td>
-                    <td>{cboxQuantity || 0}</td>
-                  </tr>
-                  <tr>
-                    <td>02</td>
-                    <td>Power Adapter</td>
-                    <td>EACH</td>
-                    <td>{totalPowerAdapterQty || 0}</td>
-                  </tr>
-                  <tr>
-                    <td>03</td>
-                    <td>GPS Antenna</td>
-                    <td>EACH</td>
-                    <td>{totalGpsAntennaQty || 0}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+<div className="voucher-section">
 
-            <div className="mb-4 report-serial-section">
-              <h5 className="report-serial-title">
-                SERIAL NUMBER OF NG-PXE SERVERS
-              </h5>
-              <div className="table-responsive report-serial-table mb-3">
-                <table className="table table-bordered report-table serial-table">
-                  <thead>
-                    <tr>
-                      <th>SL.NO</th>
-                      <th>NG-PXE SERVER</th>
-                      <th>Status</th>
-                      <th>Nature of Fault</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedBoxes.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{String(index + 1).padStart(2, "0")}</td>
-                        <td>{item.boxSerialNumber}</td>
-                        <td>{item.status}</td>
-                        <td>{item.natureOfFault || "N/A"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+    <h3 className="voucher-title">
+        ISSUE VOUCHER FOR NG-PXE SERVER AND ACCESSORIES
+    </h3>
+
+    <table className="table table-bordered report-table">
+
+        <thead>
+            <tr>
+                <th>SL.NO</th>
+                <th>ITEM</th>
+                <th>DOQ</th>
+                <th>QTY</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <tr>
+                <td>01</td>
+                <td>NG-PXE SERVER</td>
+                <td>EACH</td>
+                <td>{cboxQuantity}</td>
+            </tr>
+
+            <tr>
+                <td>02</td>
+                <td>POWER ADAPTER</td>
+                <td>EACH</td>
+                <td>{totalPowerAdapterQty}</td>
+            </tr>
+
+            <tr>
+                <td>03</td>
+                <td>GPS ANTENNA</td>
+                <td>EACH</td>
+                <td>{totalGpsAntennaQty}</td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{/* ================= SERIAL NUMBER TABLE ================= */}
+
+<div className="serial-section">
+
+    <h3 className="serial-title">
+        SERIAL NUMBER OF NG-PXE SERVERS
+    </h3>
+
+    <table className="table table-bordered report-table">
+
+        <thead>
+
+            <tr>
+
+                <th style={{width:"8%"}}>SL.NO</th>
+
+                <th style={{width:"30%"}}>
+                    NG-PXE SERVER
+                </th>
+
+                <th style={{width:"18%"}}>
+                    STATUS
+                </th>
+
+                <th>
+                    NATURE OF FAULT
+                </th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {selectedBoxes.map((item,index)=>(
+
+                <tr key={item.id}>
+
+                    <td>{index+1}</td>
+
+                    <td>{item.boxSerialNumber}</td>
+
+                    <td>{item.status}</td>
+
+                    <td>{item.natureOfFault || "N/A"}</td>
+
+                </tr>
+
+            ))}
+
+        </tbody>
+
+    </table>
+
+</div>
 
             <div className="row g-4 mb-4">
               <div className="col-md-6">

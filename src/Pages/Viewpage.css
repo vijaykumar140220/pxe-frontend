@@ -164,7 +164,7 @@
 }
 
 .report-voucher {
-  padding: 22px 28px;
+  padding: 22px 16px;
   font-size: 0.98rem;
   width: 100%;
   max-width: none;
@@ -250,29 +250,53 @@
   padding-top: 6px;
 }
 
-.report-voucher .voucher-title {
-  font-size: 1.22rem;
-  letter-spacing: 0.08em;
+.voucher-title,
+.serial-title {
+  text-align: center;
+  font-size: 1.1rem;
   font-weight: 800;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.voucher-title,
+.serial-title,
+.report-voucher .row.g-4.mb-4 > .col-md-6 > h5.signature-heading {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.voucher-title,
+.serial-title {
   display: inline-block;
+  width: auto;
   padding-bottom: 4px;
   border-bottom: 1px solid #000;
 }
 
-.report-voucher .voucher-title,
-.report-voucher .report-serial-title,
-.report-voucher .row.g-4.mb-4 > .col-md-6 > h5.signature-heading {
-  font-size: 1.22rem;
-  font-weight: 800;
+.text-center .voucher-title,
+.serial-section .serial-title {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.report-table th {
+  background: #efefef;
+  font-weight: 700;
 }
 
 .report-table th,
 .report-table td {
-  border: 1px solid #000000;
+  border: 1px solid #000;
   padding: 8px;
-  font-size: 0.98rem;
   text-align: center;
-  word-break: break-word;
+  font-size: 13px;
 }
 
 .report-table th:nth-child(2),
@@ -280,70 +304,29 @@
   text-align: left;
 }
 
-.report-table th {
-  background: #f8fafc;
-}
-
-.report-voucher > .mb-4 {
-  margin: 4px 0 !important;
-}
-
-.report-voucher .report-serial-section {
-  margin: 22px 0 2px !important;
-  padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0px !important;
-  page-break-inside: avoid;
-}
-
-.report-voucher .report-serial-title {
-  margin: 0 0 8px !important;
-  padding: 0 0 4px !important;
+.voucher-section {
+  margin-bottom: 20px;
   text-align: center;
-  line-height: 1.1;
-  letter-spacing: 0.02em;
-  display: inline-block;
-  border-bottom: 1px solid #000;
-  width: auto;
-  align-self: center;
 }
 
-.report-voucher .report-serial-table {
+.serial-section {
+  margin-top: 20px;
+  page-break-inside: avoid;
+  text-align: center;
+}
+
+
+
+.serial-table {
   width: 100%;
-  max-width: 100%;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.report-voucher .report-serial-table .serial-table {
-  width: 100%;
-  margin: 0 !important;
-}
-
-.report-voucher .serial-table th,
-.report-voucher .serial-table td {
-  padding: 4px 5px;
-}
-
-.report-voucher .report-serial-section {
-  width: 100%;
-}
-
-.report-voucher .mb-4 h5 {
-  margin: 4px 0 4px !important;
-}
-
-.report-voucher .table-responsive {
-  margin-bottom: 12px !important;
+  border-collapse: collapse;
 }
 
 .serial-table th,
 .serial-table td {
-  border: 1px solid #000000;
+  border: 1px solid #000;
   padding: 6px;
-  font-size: 0.94rem;
+  font-size: 13px;
 }
 
 .serial-table th {
@@ -420,12 +403,10 @@
 
 .signature-space {
   display: block;
-  margin-top: 0;
   width: 100%;
   height: 42px;
   border: 0;
-  border-bottom: 1px solid #000000;
-  border-radius: 0;
+  border-bottom: 1px solid #000;
   background: transparent;
 }
 
@@ -444,29 +425,9 @@
   }
 }
 
-.report-voucher h5 {
-  margin-bottom: 16px;
-  font-size: 1.05rem;
-  font-weight: 700;
-}
 
-.report-voucher .table-responsive {
-  margin-bottom: 4px;
-}
 
-.report-voucher .report-table.mb-4,
-.report-voucher .table-responsive.mb-3,
-.report-voucher .report-serial-table {
-  margin-bottom: 4px !important;
-}
 
-.report-voucher .text-center.mb-4 {
-  margin: 0 0 4px !important;
-}
-
-.report-voucher h5 {
-  margin: 6px 0 6px;
-}
 
 .report-voucher .row.g-4.mb-4 {
   display: flex !important;
@@ -492,6 +453,7 @@
   display: inline-block;
   padding-bottom: 4px;
   border-bottom: 1px solid #000;
+  margin: 0 0 8px;
 }
 
 .report-voucher .report-field {
@@ -531,7 +493,7 @@
   }
 
   .report-voucher {
-    padding: 0 !important;
+    padding: 8px 10px !important;
     margin: 0 !important;
     border: 0 !important;
     box-shadow: none !important;
@@ -558,61 +520,31 @@
     font-size: 10.5pt !important;
   }
 
-  .report-voucher .voucher-title {
-    font-size: 16pt !important;
-    letter-spacing: 0.06em !important;
-    margin-bottom: 8px !important;
-  }
-
-  .report-voucher .report-serial-title {
-    margin-bottom: 8px !important;
-    padding-bottom: 4px !important;
-  }
-
-  .report-voucher h5 {
-    font-size: 12.5pt !important;
-  }
-
-  .report-voucher .table-responsive {
-    overflow: visible !important;
-  }
-
-  .report-voucher .report-table th,
-  .report-voucher .report-table td {
+  .report-table th,
+  .report-table td {
     font-size: 11pt !important;
     padding: 10px 8px !important;
   }
 
-  .report-voucher .table-responsive {
-    margin-bottom: 10px !important;
+  .voucher-section {
+    margin-bottom: 15px;
   }
 
-  .report-voucher .report-serial-section {
-    margin-top: 18px !important;
+  .serial-section {
+    margin-top: 15px;
   }
 
-  .report-voucher .report-serial-title {
-    margin-bottom: 8px !important;
-    padding-bottom: 4px !important;
-  }
-
-  .report-voucher .serial-table th,
-  .report-voucher .serial-table td {
+  .serial-table th,
+  .serial-table td {
     font-size: 10.5pt !important;
     padding: 8px 7px !important;
   }
 
-  .report-voucher .report-field label {
+  .report-field label {
     font-size: 9pt !important;
   }
 
-  .report-voucher .report-field input.report-input,
-  .report-voucher .signature-space {
-    font-size: 10pt !important;
-    min-height: 28px !important;
-  }
-
-  .report-voucher .signature-space {
+  .signature-space {
     height: 34px !important;
   }
 }
