@@ -175,6 +175,20 @@
   border-radius: 8px;
   overflow: hidden;
   page-break-after: auto;
+  min-height: 287mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.report-pages .report-voucher {
+  break-after: page;
+  page-break-after: always;
+}
+
+.report-pages .report-voucher:last-child {
+  break-after: auto;
+  page-break-after: auto;
 }
 
 .report-header-top {
@@ -305,12 +319,12 @@
 }
 
 .voucher-section {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   text-align: center;
 }
 
 .serial-section {
-  margin-top: 20px;
+  margin-top: 18px;
   page-break-inside: avoid;
   text-align: center;
 }
@@ -336,6 +350,24 @@
 .serial-table th:nth-child(4),
 .serial-table td:nth-child(4) {
   text-align: left;
+}
+
+.report-page-footer {
+  border-top: 1px solid #000;
+  padding-top: 6px;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: auto;
+}
+
+.report-terms {
+  margin: 12px 0 8px;
+  color: #1e293b;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  text-align: justify;
 }
 
 .report-field {
@@ -499,6 +531,15 @@
     box-shadow: none !important;
     font-size: 13pt !important;
     line-height: 1.35 !important;
+    min-height: 287mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .report-pages .report-voucher {
+    break-after: page;
+    page-break-after: always;
   }
 
   .report-voucher .company-name {

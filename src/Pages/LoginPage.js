@@ -1,253 +1,293 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
-import { FiLock, FiMail, FiRefreshCw } from "react-icons/fi";
+import { FaSpinner, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../Context/AuthContext";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import "./Login.css";
-
-const createCaptcha = () => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 5 }, () =>
-    chars.charAt(Math.floor(Math.random() * chars.length)),
-  ).join("");
-};
 
 const LoginPage = () => {
   const [form, setForm] = useState({
-    email: "",
+    username: "",
     password: "",
-    role: "Admin",
+    rememberMe: true,
   });
-  const [captchaText, setCaptchaText] = useState(() => createCaptcha());
-  const [captchaInput, setCaptchaInput] = useState("");
-
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-    captcha: "",
-  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [strength, setStrength] = useState(0);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { login, loginWithExternalToken } = useAuth();
 
-  const validateForm = () => {
-    let valid = true;
-    let newErrors = { email: "", password: "", captcha: "" };
+  const strengthLabel = useMemo(() => {
+    if (strength <= 1) return "Weak";
+    if (strength === 2) return "Fair";
+    if (strength === 3) return "Strong";
+    return "Very Strong";
+  }, [strength]);
 
-    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
-    if (!form.email) {
-      newErrors.email = "Email Address is required";
-      valid = false;
-    } else if (!emailRegex.test(form.email)) {
-      newErrors.email = "Email must be lowercase and contain @ and .";
-      valid = false;
-    }
-
-    const specialCharRegex = /[*@!#%&()^~{}]+/;
-    if (!form.password) {
-      newErrors.password = "Password is required";
-      valid = false;
-    } else if (!specialCharRegex.test(form.password)) {
-      newErrors.password = "Password must contain one special character";
-      valid = false;
-    }
-
-    if (!captchaInput.trim()) {
-      newErrors.captcha = "Captcha is required";
-      valid = false;
-    } else if (captchaInput.trim().toUpperCase() !== captchaText) {
-      newErrors.captcha = "Captcha does not match";
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
+  const setPasswordStrength = (value) => {
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[A-Z]/.test(value)) score += 1;
+    if (/[0-9]/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value)) score += 1;
+    setStrength(score);
   };
 
-  const refreshCaptcha = () => {
-    setCaptchaText(createCaptcha());
-    setCaptchaInput("");
-    if (errors.captcha) setErrors({ ...errors, captcha: "" });
+  const validate = () => {
+    const nextErrors = {};
+    if (!form.username.trim()) nextErrors.username = "Username is required";
+    if (!form.password.trim()) nextErrors.password = "Password is required";
+    else if (form.password.trim().length < 8)
+      nextErrors.password = "Password must be at least 8 characters";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!validate()) {
+      toast.error("Please enter valid credentials");
+      return;
+    }
 
-    if (!validateForm()) return;
-
+    setLoading(true);
     try {
       const session = login({
-        email: form.email,
+        email: form.username,
         password: form.password,
       });
-
-      dispatch({
-        type: "LOGIN_SUCCESS",
-        payload: session.token,
-      });
-
-      toast.success("Login Successful!");
+      dispatch({ type: "LOGIN_SUCCESS", payload: session.token });
+      toast.success("Welcome back to PXE Box Management System");
       navigate("/dashboard");
       return;
     } catch {
       try {
-        const res = await axios.post("http://127.0.0.1:5000/auth/login", form);
+        const res = await axios.post("http://127.0.0.1:5000/auth/login", {
+          email: form.username,
+          password: form.password,
+        });
+
         const token = res.data.access_token;
+        if (!token) throw new Error("Token not received");
 
-        if (token) {
-          const session = loginWithExternalToken({
-            id: res.data.user?._id,
-            email: form.email,
-            token,
-            role: res.data.user?.role || res.data.role || "USER",
-            username: res.data.user?.name || res.data.username,
-            assetHistoryAccess:
-              res.data.user?.assetHistoryAccess ||
-              res.data.assetHistoryAccess ||
-              "NO",
-          });
+        const session = loginWithExternalToken({
+          id: res.data.user?._id,
+          email: form.username,
+          token,
+          role: res.data.user?.role || res.data.role || "USER",
+          username: res.data.user?.name || res.data.username || form.username,
+          assetHistoryAccess:
+            res.data.user?.assetHistoryAccess ||
+            res.data.assetHistoryAccess ||
+            "NO",
+        });
 
-          dispatch({
-            type: "LOGIN_SUCCESS",
-            payload: session.token,
-          });
-          toast.success("Login Successful!");
-          navigate("/dashboard");
-        } else {
-          toast.error("Token not received");
-          refreshCaptcha();
-        }
+        dispatch({ type: "LOGIN_SUCCESS", payload: session.token });
+        toast.success("Welcome back to PXE Box Management System");
+        navigate("/dashboard");
       } catch (err) {
-        console.error(err);
-        if (err.response) {
-          toast.error(err.response.data.message || "Login Failed");
-        } else {
-          toast.error("Invalid credentials or server not reachable");
-        }
-        refreshCaptcha();
+        toast.error(err.response?.data?.message || "Login failed");
+      } finally {
+        setLoading(false);
       }
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="login-container">
-    
-      <div className="login-card">
-        <div className="login-card__heading">
-                    {/* <p className="login-subtitle">
-            Enter your organizational credentials to proceed
-          </p> */}
+    <div className="pxe-login-page is-dark">
+      <div className="pxe-login-glow pxe-login-glow--one" aria-hidden="true" />
+      <div className="pxe-login-glow pxe-login-glow--two" aria-hidden="true" />
+      <div
+        className="pxe-login-glow pxe-login-glow--three"
+        aria-hidden="true"
+      />
+
+      <nav className="pxe-login-navbar" aria-label="Primary">
+        <div className="pxe-login-navbar__brand">
+          <img
+            src="/logo.png"
+            alt="PXE logo"
+            className="pxe-login-navbar__logo"
+          />
+          <div>
+            <strong>PXE BOX</strong>
+            <span>Management System</span>
+          </div>
         </div>
+      </nav>
 
-        <form onSubmit={handleLogin} noValidate>
-          <div className="form-group">
-            <label className="login-label">UserName</label>
-            <div
-              className={`input-wrapper ${errors.email ? "input-error" : ""}`}
-            >
-              <span className="input-symbol" aria-hidden="true">
-                <FiMail />
+      <div className="container-fluid pxe-login-shell">
+        <div className="pxe-login-card">
+          <aside className="pxe-login-card__visual">
+            <img
+              src="/login.jpeg"
+              alt="PXE deployment environment"
+              className="pxe-login-card__image"
+            />
+            <div className="pxe-login-card__overlay" />
+            <div className="pxe-login-card__visual-copy">
+              <p>PXE Deployment</p>
+              <h2>Enterprise control for box operations</h2>
+              <span>
+                Centralized deployment, inventory, boot workflows, and server
+                health visibility in one secure workspace.
               </span>
-              <input
-                type="email"
-                className="login-input"
-                placeholder="Email Address"
-                value={form.email}
-                onChange={(e) => {
-                  setForm({ ...form, email: e.target.value });
-                  if (errors.email) setErrors({ ...errors, email: "" });
-                }}
-              />
-              {errors.email && <span className="error-icon">!</span>}
             </div>
-            {errors.email && <p className="error-text">{errors.email}</p>}
-          </div>
+          </aside>
 
-          <div className="form-group">
-            <label className="login-label">Password</label>
-            <div
-              className={`input-wrapper ${errors.password ? "input-error" : ""}`}
-            >
-              <span className="input-symbol" aria-hidden="true">
-                <FiLock />
-              </span>
-              <input
-                type="password"
-                className="login-input"
-                placeholder="************"
-                value={form.password}
-                onChange={(e) => {
-                  setForm({ ...form, password: e.target.value });
-                  if (errors.password) setErrors({ ...errors, password: "" });
-                }}
-              />
-              {errors.password && <span className="error-icon">!</span>}
-            </div>
-            {errors.password && <p className="error-text">{errors.password}</p>}
-          </div>
-
-          <div className="form-group">
-            <label className="login-label">Captcha</label>
-            <div className="captcha-row">
-              <div className="captcha-code" aria-label="Captcha code">
-                {captchaText}
+          <section className="pxe-login-card__panel">
+            <div className="pxe-brand-block text-center">
+              <img src="/logo.png" alt="PXE logo" className="pxe-brand-logo" />
+              <div className="pxe-brand-heading">
+                <span className="pxe-brand-heading__eyebrow">PXE</span>
+                <h1>Management System</h1>
               </div>
+              <p>Centralized. Automated. Scalable.</p>
+            </div>
+
+            <form
+              className="pxe-form"
+              onSubmit={handleSubmit}
+              noValidate
+              id="login-form"
+            >
+              <div className="mb-3">
+                <label htmlFor="username" className="form-label pxe-label">
+                  Username
+                </label>
+                <div
+                  className={`input-group pxe-input ${errors.username ? "is-invalid" : ""}`}
+                >
+                  <span className="input-group-text">
+                    <i className="bi bi-person" />
+                  </span>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter username"
+                    value={form.username}
+                    onChange={(e) => {
+                      setForm((current) => ({
+                        ...current,
+                        username: e.target.value,
+                      }));
+                      if (errors.username) {
+                        setErrors((current) => ({ ...current, username: "" }));
+                      }
+                    }}
+                  />
+                  {errors.username && (
+                    <div className="invalid-feedback d-block">
+                      {errors.username}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <label htmlFor="password" className="form-label pxe-label">
+                  Password
+                </label>
+                <div
+                  className={`input-group pxe-input ${errors.password ? "is-invalid" : ""}`}
+                >
+                  <span className="input-group-text">
+                    <i className="bi bi-lock" />
+                  </span>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    className="form-control"
+                    placeholder="Enter password"
+                    value={form.password}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setForm((current) => ({ ...current, password: value }));
+                      setPasswordStrength(value);
+                      if (errors.password) {
+                        setErrors((current) => ({ ...current, password: "" }));
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn pxe-password-toggle"
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    <i
+                      className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`}
+                    />
+                  </button>
+                  {errors.password && (
+                    <div className="invalid-feedback d-block">
+                      {errors.password}
+                    </div>
+                  )}
+                </div>
+                <div className="pxe-strength mt-2">
+                  <div className={`pxe-strength__bar strength-${strength}`} />
+                  <span>{strengthLabel}</span>
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-4">
+                <label className="form-check pxe-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={form.rememberMe}
+                    onChange={(e) =>
+                      setForm((current) => ({
+                        ...current,
+                        rememberMe: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span className="form-check-label">Remember Me</span>
+                </label>
+              </div>
+
               <button
-                type="button"
-                className="captcha-refresh"
-                onClick={refreshCaptcha}
-                aria-label="Refresh captcha"
-                title="Refresh captcha"
+                type="submit"
+                className="btn pxe-login-btn w-100"
+                disabled={loading}
               >
-                <FiRefreshCw aria-hidden="true" />
+                {loading ? (
+                  <>
+                    <FaSpinner className="pxe-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    <FaShieldAlt />
+                    Login
+                  </>
+                )}
               </button>
-              <div
-                className={`input-wrapper captcha-input ${
-                  errors.captcha ? "input-error" : ""
-                }`}
-              >
-                <input
-                  type="text"
-                  className="login-input"
-                  placeholder="Enter characters"
-                  value={captchaInput}
-                  onChange={(e) => {
-                    setCaptchaInput(e.target.value.toUpperCase());
-                    if (errors.captcha) setErrors({ ...errors, captcha: "" });
-                  }}
-                />
-                {errors.captcha && <span className="error-icon">!</span>}
-              </div>
+            </form>
+
+            <div className="pxe-footer mt-4 pt-3">
+              <span>© 2026 PXE Box Management System</span>
+              <span className="pxe-footer__dot" />
+              <span>v2.0</span>
             </div>
-            {errors.captcha && <p className="error-text">{errors.captcha}</p>}
-          </div>
-
-          <div className="login-options">
-            {/* <label className="remember-option">
-              <input type="checkbox" />
-              <span>Remember device</span>
-            </label> */}
-            {/* <button type="button" className="forgot-link">
-              Forgot access?
-            </button> */}
-          </div>
-
-          <button type="submit" className="login-btn">
-            LOGIN
-          </button>
-        </form>
-
-        <div className="security-note">
-          If You Forget your password please
-          Contact Admin.
+          </section>
         </div>
-
-        {/* <button type="button" className="admin-contact">
-          Contact System Administrator
-        </button> */}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { FiArrowDown, FiArrowUp } from "react-icons/fi";
 
 const SortableHeader = ({
   label,
+  title,
   sortKey,
   sortConfig,
   onSort,
@@ -24,6 +25,7 @@ const SortableHeader = ({
         type="button"
         className={`sort-header ${isActive ? "is-active" : ""}`}
         onClick={() => onSort(sortKey)}
+        title={title || label}
       >
         <span>{label}</span>
         {isActive &&

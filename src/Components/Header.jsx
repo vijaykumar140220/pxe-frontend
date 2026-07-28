@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
-import { FiKey, FiLogOut, FiShield, FiUser, FiX } from "react-icons/fi";
+import { FiKey, FiLogOut, FiMenu, FiShield, FiUser, FiX } from "react-icons/fi";
 import Logo from "./Logo";
 import { useAuth } from "../Context/AuthContext";
 
@@ -15,7 +15,7 @@ const initialPasswordForm = {
 
 const mongoIdPattern = /^[a-f\d]{24}$/i;
 
-const Header = () => {
+const Header = ({ isNavOpen, onMenuClick, onNavClose }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { currentUser, isAuthenticated, logout } = useAuth();
@@ -33,9 +33,20 @@ const Header = () => {
       }
     };
 
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setProfileOpen(false);
+        onNavClose?.();
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [onNavClose]);
 
   const handleLogout = () => {
     logout();
@@ -186,7 +197,21 @@ const Header = () => {
       className={`app-header ${isAuthenticated ? "app-header--secure" : ""}`}
     >
       <div className="app-header__inner">
-        <Logo />
+        <div className="app-header__brand">
+          {isAuthenticated && (
+            <button
+              type="button"
+              className="app-header__menu-btn"
+              aria-label={isNavOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isNavOpen}
+              aria-controls="app-mobile-nav"
+              onClick={onMenuClick}
+            >
+              {isNavOpen ? <FiX /> : <FiMenu />}
+            </button>
+          )}
+          <Logo />
+        </div>
         <div className="app-header__copy">
           <p className="app-header__eyebrow">NG-PXE Inventory Management</p>
           <h1>NG-PXE INVENTORY MANAGEMENT SYSTEM</h1>

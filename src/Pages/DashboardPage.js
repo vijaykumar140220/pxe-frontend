@@ -35,7 +35,10 @@ import {
   FiRefreshCw,
   FiSearch,
   FiSettings,
+  FiHardDrive,
+  FiLayers,
   FiShield,
+  FiSlash,
   FiTool,
   FiTruck,
   FiUsers,
@@ -98,6 +101,38 @@ const formatDate = (value) => {
     : value || "N/A";
 };
 const compactNumber = (value) => Number(value || 0).toLocaleString("en-IN");
+
+const locationTotalLabelPlugin = {
+  id: "locationTotalLabelPlugin",
+  afterDatasetsDraw(chart) {
+    const {
+      ctx,
+      data,
+      scales: { x, y },
+    } = chart;
+
+    ctx.save();
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "700 11px Inter, system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+
+    data.labels.forEach((label, index) => {
+      const datasetTotal = data.datasets.reduce(
+        (sum, dataset) => sum + Number(dataset.data?.[index] || 0),
+        0,
+      );
+      const meta = chart.getDatasetMeta(data.datasets.length - 1);
+      const bar = meta?.data?.[index];
+      if (!bar) return;
+
+      const xPos = Math.min(x.right - 6, bar.x + 22);
+      const yPos = y.getPixelForValue(index);
+      ctx.fillText(compactNumber(datasetTotal), xPos, yPos);
+    });
+
+    ctx.restore();
+  },
+};
 
 const baseChartOptions = {
   responsive: true,
@@ -461,7 +496,7 @@ const getBreakdownStatusOptions = (groupKey) => {
       { key: "all", label: "All" },
       { key: "serviceable", label: "Serviceable" },
       { key: "unserviceable", label: "Un-Serviceable" },
-      { key: "onLoan", label: "On Loan" },
+      { key: "onLoan", label: "Testing" },
     ];
   }
 
@@ -478,7 +513,110 @@ const getBreakdownStatusOptions = (groupKey) => {
   return [{ key: "all", label: "All" }];
 };
 
-const ChartPanel = ({ title, subtitle, children, action }) => (
+const getOperationalSerials = (analytics, statusKey) => {
+  const isServiceable = (record) =>
+    normalize(record.boxStatus) === "SERVICEABLE";
+  const isUnserviceable = (record) =>
+    ["UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"].includes(
+      normalize(record.boxStatus),
+    );
+  const isLoan = (record) => {
+    const office = normalize(record.toOffice || "");
+    const transType = normalize(record.transactionType || "");
+    return office === "LOAN" || office.includes("LOAN") || transType.includes("LOAN");
+  };
+  const isStatusMatch = (record) => {
+    if (statusKey === "serviceable") return isServiceable(record);
+    if (statusKey === "unserviceable") return isUnserviceable(record);
+    if (statusKey === "onLoan") return isLoan(record);
+    if (statusKey === "retired")
+      return ["TAMPERED", "TEMPERED"].includes(normalize(record.boxStatus));
+    if (statusKey === "critical")
+      return ["POLICE CUSTODY", "NOT TRACED", "NOT-TRACED"].includes(
+        normalize(record.boxStatus),
+      );
+    return false;
+  };
+
+  return analytics.latest
+    .filter((record) => isStatusMatch(record))
+    .map((record) => ({
+      serial: record.boxSerialNumber || record.serialNumber || "N/A",
+      label:
+        statusKey === "serviceable"
+          ? "SERVICEABLE"
+          : statusKey === "unserviceable"
+            ? "UN-SERVICEABLE"
+            : statusKey === "onLoan"
+              ? "ON LOAN"
+              : statusKey === "retired"
+                ? "TAMPERED"
+                : "POLICE CUSTODY",
+      tone:
+        statusKey === "serviceable"
+          ? "success"
+          : statusKey === "unserviceable"
+            ? "danger"
+            : statusKey === "onLoan"
+              ? "blue"
+              : "neutral",
+    }))
+    .filter((item) => item.serial && item.serial !== "N/A");
+};
+
+const getTotalAssetBreakdown = (inventory) => {
+  const isBlackBox = (asset) =>
+    [asset.category, asset.itemName, asset.model, asset.type]
+      .filter(Boolean)
+      .some((value) => normalize(value).includes("BLACK"));
+  const isBlueBox = (asset) =>
+    [asset.category, asset.itemName, asset.model, asset.type]
+      .filter(Boolean)
+      .some((value) => normalize(value).includes("BLUE"));
+
+  return [
+    {
+      key: "blackBox",
+      label: "Black Box",
+      value: inventory.filter(isBlackBox).length,
+    },
+    {
+      key: "blueBox",
+      label: "Blue Box",
+      value: inventory.filter(isBlueBox).length,
+    },
+  ];
+};
+
+const getTotalAssetSerials = (inventory) => {
+  const classify = (asset) => {
+    const fields = [asset.category, asset.itemName, asset.model, asset.type]
+      .filter(Boolean)
+      .map((value) => normalize(value));
+    if (fields.some((value) => value.includes("BLACK"))) {
+      return { label: "BLACK BOX", tone: "dark" };
+    }
+    if (fields.some((value) => value.includes("BLUE"))) {
+      return { label: "BLUE BOX", tone: "blue" };
+    }
+    return { label: "ASSET", tone: "neutral" };
+  };
+
+  return inventory
+    .map((asset) => ({
+      serial: asset.serialNumber || asset.boxSerialNumber || "N/A",
+      ...classify(asset),
+    }))
+    .filter((item) => item.serial && item.serial !== "N/A");
+};
+
+const getTotalAssetStatusOptions = () => [
+  { key: "all", label: "All" },
+  { key: "blackBox", label: "Black Box" },
+  { key: "blueBox", label: "Blue Box" },
+];
+
+const ChartPanel = ({ title, subtitle, children, action, footer }) => (
   <section className="enterprise-card gov-chart-card">
     <div className="gov-card-heading">
       <div>
@@ -491,6 +629,7 @@ const ChartPanel = ({ title, subtitle, children, action }) => (
         </span>
       )}
     </div>
+    {footer && <div className="gov-chart-footer">{footer}</div>}
     <div className="gov-chart-canvas">{children}</div>
   </section>
 );
@@ -531,6 +670,8 @@ const DashboardPage = () => {
   const [selectedBreakdown, setSelectedBreakdown] = useState(null);
   const [selectedBreakdownStatus, setSelectedBreakdownStatus] =
     useState("all");
+  const [selectedOperational, setSelectedOperational] = useState(null);
+  const [selectedIntelligence, setSelectedIntelligence] = useState(null);
 
   const fetchDashboard = useCallback(async (notify = false) => {
     try {
@@ -572,6 +713,11 @@ const DashboardPage = () => {
       icon: FiBox,
       color: "#1e40af",
       trend: 0,
+      key: "totalAssets",
+      details: getTotalAssetBreakdown(inventory).map((item) => [
+        item.label,
+        item.value,
+      ]),
     },
   ];
 
@@ -617,20 +763,20 @@ const DashboardPage = () => {
     {
       key: "cDAC",
       label: "C-DAC",
-      logo: "CD",
+      icon: FiHardDrive,
       value: analytics.cDAC,
       color: "#1e40af",
       bg: "#dbeafe",
       details: [
-        ["Stock (Serviceable)", analytics.cDACStockSer],
-        ["Stock (Un-Serviceable)", analytics.cDACStockUnSer],
-        ["On Loan", analytics.cDACOnLoan],
+        ["Serviceable", analytics.cDACStockSer],
+        ["Un-Serviceable", analytics.cDACStockUnSer],
+        ["Testing", analytics.cDACOnLoan],
       ],
     },
     {
       key: "eduquity",
       label: "EDUQUITY",
-      logo: "EQ",
+      icon: FiLayers,
       value: analytics.eduquity,
       color: "#16a34a",
       bg: "#dcfce7",
@@ -644,7 +790,7 @@ const DashboardPage = () => {
     {
       key: "aheesa",
       label: "AHEESA",
-      logo: "AH",
+      icon: FiShield,
       value: analytics.aheesa,
       color: "#7c3aed",
       bg: "#ede9fe",
@@ -652,7 +798,7 @@ const DashboardPage = () => {
     {
       key: "notTraced",
       label: "Not Traced",
-      logo: "NT",
+      icon: FiSlash,
       value: analytics.notTraced,
       color: "#8b5cf6",
       bg: "#f3e8ff",
@@ -695,24 +841,69 @@ const DashboardPage = () => {
       },
     ],
   };
+  const classifyBoxType = (record) => {
+    const fields = [
+      record?.category,
+      record?.itemName,
+      record?.model,
+      record?.type,
+      record?.assetType,
+    ]
+      .filter(Boolean)
+      .map((value) => normalize(value));
+    if (fields.some((value) => value.includes("BLACK"))) return "BLACK";
+    if (fields.some((value) => value.includes("BLUE"))) return "BLUE";
+    return "OTHER";
+  };
+  const locationSummary = new Map();
+  analytics.latest.forEach((record) => {
+    const location = normalize(record?.toLocation || record?.toOffice) || "UNASSIGNED";
+    const entry = locationSummary.get(location) || {
+      black: 0,
+      blue: 0,
+    };
+    const boxType = classifyBoxType(record.asset || record);
+    if (boxType === "BLACK") entry.black += 1;
+    else if (boxType === "BLUE") entry.blue += 1;
+    locationSummary.set(location, entry);
+  });
+  const locationLabels = [...locationSummary.entries()]
+    .sort((a, b) => b[1].black + b[1].blue - (a[1].black + a[1].blue))
+    .slice(0, 6)
+    .map(([name]) => name);
+  const getLocationBoxCounts = (name) => {
+    const summary = locationSummary.get(normalize(name)) || { black: 0, blue: 0 };
+    return summary;
+  };
   const locationData = {
-    labels: analytics.locations.map(([name]) => name),
+    labels: locationLabels,
     datasets: [
       {
-        label: "Assets",
-        data: analytics.locations.map(([, value]) => value.total),
-        backgroundColor: [
-          "#1e40af",
-          "#2563eb",
-          "#0891b2",
-          "#16a34a",
-          "#f59e0b",
-          "#7c3aed",
-        ],
+        label: "Black Box",
+        data: locationLabels.map((location) => locationSummary.get(location)?.black || 0),
+        backgroundColor: "#111827",
+        borderRadius: 4,
+      },
+      {
+        label: "Blue Box",
+        data: locationLabels.map((location) => locationSummary.get(location)?.blue || 0),
+        backgroundColor: "#1d4ed8",
         borderRadius: 4,
       },
     ],
   };
+  const blackBoxTotal = inventory.filter((asset) => {
+    const fields = [asset.category, asset.itemName, asset.model, asset.type]
+      .filter(Boolean)
+      .map((value) => normalize(value));
+    return fields.some((value) => value.includes("BLACK"));
+  }).length;
+  const blueBoxTotal = inventory.filter((asset) => {
+    const fields = [asset.category, asset.itemName, asset.model, asset.type]
+      .filter(Boolean)
+      .map((value) => normalize(value));
+    return fields.some((value) => value.includes("BLUE"));
+  }).length;
   const serviceData = {
     labels: analytics.locations.map(([name]) => name),
     datasets: [
@@ -798,6 +989,27 @@ const DashboardPage = () => {
   }, [analytics.recent, search, statusFilter, sort]);
   const selectedBreakdownData = useMemo(() => {
     if (!selectedBreakdown) return null;
+    if (selectedBreakdown === "totalAssets") {
+      const statusOption = getTotalAssetStatusOptions().find(
+        (option) => option.key === selectedBreakdownStatus,
+      );
+      const allSerials = getTotalAssetSerials(inventory);
+      const filteredSerials =
+        selectedBreakdownStatus === "blackBox"
+          ? allSerials.filter((item) => item.label === "BLACK BOX")
+          : selectedBreakdownStatus === "blueBox"
+            ? allSerials.filter((item) => item.label === "BLUE BOX")
+            : allSerials;
+
+      return {
+        key: "totalAssets",
+        label: "Total PXE Assets",
+        value: analytics.total,
+        serials: filteredSerials,
+        statusOptions: getTotalAssetStatusOptions(),
+        selectedStatusLabel: statusOption?.label || "All",
+      };
+    }
     const item = breakdownItems.find((entry) => entry.key === selectedBreakdown);
     if (!item) return null;
     const statusOption = getBreakdownStatusOptions(selectedBreakdown).find(
@@ -813,7 +1025,165 @@ const DashboardPage = () => {
       statusOptions: getBreakdownStatusOptions(selectedBreakdown),
       selectedStatusLabel: statusOption?.label || "All",
     };
-  }, [analytics, breakdownItems, selectedBreakdown, selectedBreakdownStatus]);
+  }, [analytics, breakdownItems, inventory, selectedBreakdown, selectedBreakdownStatus]);
+  const selectedOperationalData = useMemo(() => {
+    if (!selectedOperational) return null;
+    const map = {
+      serviceable: {
+        label: "Serviceable Assets",
+        value: analytics.serviceable,
+        serials: getOperationalSerials(analytics, "serviceable"),
+      },
+      unserviceable: {
+        label: "Un-Serviceable Assets",
+        value: analytics.maintenance,
+        serials: getOperationalSerials(analytics, "unserviceable"),
+      },
+      onLoan: {
+        label: "Assets In Transportation",
+        value: analytics.inTransit,
+        serials: getOperationalSerials(analytics, "onLoan"),
+      },
+      retired: {
+        label: "Tampered Assets",
+        value: analytics.retired,
+        serials: getOperationalSerials(analytics, "retired"),
+      },
+      critical: {
+        label: "Critical Assets",
+        value: analytics.critical,
+        serials: getOperationalSerials(analytics, "critical"),
+      },
+    };
+    return map[selectedOperational] || null;
+  }, [analytics, selectedOperational]);
+  const selectedIntelligenceData = useMemo(() => {
+    if (!selectedIntelligence) return null;
+    const isLocation = (record, locationName) => {
+      const office = normalize(record.toOffice || "");
+      const location = normalize(record.toLocation || "");
+      const target = normalize(locationName || "");
+      return (
+        office === target ||
+        location === target ||
+        office.includes(target) ||
+        location.includes(target)
+      );
+    };
+    const getCategoryLabel = (record) => {
+      const source = record.asset || record;
+      const fields = [
+        source.category,
+        source.itemName,
+        source.model,
+        source.type,
+        source.assetType,
+        record.category,
+        record.itemName,
+        record.model,
+        record.type,
+        record.assetType,
+      ]
+        .filter(Boolean)
+        .map((value) => normalize(value));
+      if (fields.some((value) => value.includes("BLACK"))) return "BLACK BOX";
+      if (fields.some((value) => value.includes("BLUE"))) return "BLUE BOX";
+      return null;
+    };
+    const isBlackCategory = (record) => {
+      const source = record.asset || record;
+      const fields = [
+        source.category,
+        source.itemName,
+        source.model,
+        source.type,
+        source.assetType,
+        record.category,
+        record.itemName,
+        record.model,
+        record.type,
+        record.assetType,
+      ]
+        .filter(Boolean)
+        .map((value) => normalize(value));
+      return fields.some((value) => value.includes("BLACK"));
+    };
+    const isUnserviceable = (record) =>
+      ["UN-SERVICEABLE", "UNSERVICEABLE", "UN-SERVICABLE"].includes(
+        normalize(record.boxStatus),
+      );
+    const isCritical = (record) =>
+      ["POLICE CUSTODY", "NOT TRACED", "NOT-TRACED"].includes(
+        normalize(record.boxStatus),
+      );
+    const isPendingApproval = () => false;
+    const buildSerials = (records, predicate, label, tone) =>
+      records
+        .filter((record) => predicate(record) && (record.serialNumber || record.boxSerialNumber))
+        .map((record) => ({
+          serial: record.serialNumber || record.boxSerialNumber,
+          label,
+          tone,
+        }));
+
+    let serials = [];
+    if (selectedIntelligence.key === "mostActiveLocation") {
+      serials = buildSerials(
+        analytics.latest,
+        (record) => isLocation(record, analytics.activeLocation[0]),
+        "SERVICEABLE",
+        "success",
+      );
+    } else if (selectedIntelligence.key === "mostUsedCategory") {
+      serials = buildSerials(
+        inventory,
+        (record) => isBlackCategory(record),
+        "BLACK BOX",
+        "dark",
+      );
+    } else if (selectedIntelligence.key === "averageAssetAge") {
+      serials = buildSerials(inventory, () => true, "SERVICEABLE", "success");
+    } else if (selectedIntelligence.key === "unservicedAssets") {
+      serials = buildSerials(analytics.latest, isUnserviceable, "UN-SERVICEABLE", "danger");
+    } else if (selectedIntelligence.key === "pendingApprovals") {
+      serials = buildSerials(analytics.latest, isPendingApproval, "PENDING", "neutral");
+    } else if (selectedIntelligence.key === "highPriorityAlerts") {
+      serials = buildSerials(analytics.latest, isCritical, "CRITICAL", "danger");
+    }
+
+    return {
+      label:
+        selectedIntelligence.key === "mostUsedCategory"
+          ? "BLACK"
+          : selectedIntelligence.label,
+      title: selectedIntelligence.label,
+      value:
+        selectedIntelligence.key === "mostActiveLocation"
+          ? analytics.activeLocation[1].total
+          : selectedIntelligence.key === "mostUsedCategory"
+            ? analytics.topCategory[1]
+            : selectedIntelligence.key === "averageAssetAge"
+              ? analytics.averageAge
+              : selectedIntelligence.key === "unservicedAssets"
+                ? analytics.maintenance
+                : selectedIntelligence.key === "pendingApprovals"
+                  ? 0
+                  : analytics.critical,
+      serials,
+      emptyMessage:
+        selectedIntelligence.key === "mostUsedCategory"
+          ? "No black box serial numbers found."
+          : "No box serial numbers found.",
+    };
+  }, [
+    analytics.latest,
+    analytics.activeLocation,
+    analytics.topCategory,
+    inventory,
+    selectedIntelligence,
+  ]);
+  const activeModalData =
+    selectedBreakdownData || selectedOperationalData || selectedIntelligenceData;
   const pageSize = 8;
   const totalPages = Math.max(
     1,
@@ -846,6 +1216,7 @@ const DashboardPage = () => {
 
   const intelligence = [
     {
+      key: "mostActiveLocation",
       label: "Most Active Location",
       value: analytics.activeLocation[0],
       detail: `${compactNumber(analytics.activeLocation[1].total)} assets`,
@@ -853,6 +1224,7 @@ const DashboardPage = () => {
       tone: "blue",
     },
     {
+      key: "mostUsedCategory",
       label: "Most Used Category",
       value: analytics.topCategory[0],
       detail: `${compactNumber(analytics.topCategory[1])} assets`,
@@ -860,6 +1232,7 @@ const DashboardPage = () => {
       tone: "green",
     },
     {
+      key: "averageAssetAge",
       label: "Average Asset Age",
       value: `${analytics.averageAge.toFixed(1)} years`,
       detail: "From purchase date",
@@ -867,6 +1240,7 @@ const DashboardPage = () => {
       tone: "violet",
     },
     {
+      key: "unservicedAssets",
       label: "Unserviced Assets",
       value: compactNumber(analytics.maintenance),
       detail: "Requires service action",
@@ -874,6 +1248,7 @@ const DashboardPage = () => {
       tone: "amber",
     },
     {
+      key: "pendingApprovals",
       label: "Pending Approvals",
       value: "0",
       detail: "No approval queue configured",
@@ -881,6 +1256,7 @@ const DashboardPage = () => {
       tone: "gray",
     },
     {
+      key: "highPriorityAlerts",
       label: "High Priority Alerts",
       value: compactNumber(analytics.critical),
       detail: "Custody and untraced",
@@ -979,6 +1355,23 @@ const DashboardPage = () => {
               className="enterprise-card gov-kpi"
               style={{ "--kpi-color": item.color }}
               key={item.label}
+              role={item.key ? "button" : undefined}
+              tabIndex={item.key ? 0 : undefined}
+              onClick={
+                item.key
+                  ? () => setSelectedOperational(item.key)
+                  : undefined
+              }
+              onKeyDown={
+                item.key
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedOperational(item.key);
+                      }
+                    }
+                  : undefined
+              }
             >
               <div className="gov-kpi__top">
                 <span>{item.label}</span>
@@ -1032,6 +1425,15 @@ const DashboardPage = () => {
                   <article
                     className={`enterprise-card intelligence-card intelligence-card--${item.tone}`}
                     key={item.label}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedIntelligence(item)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedIntelligence(item);
+                      }
+                    }}
                   >
                     <i>
                       <Icon />
@@ -1053,12 +1455,25 @@ const DashboardPage = () => {
               >
                 <Bar
                   data={locationData}
+                  plugins={[locationTotalLabelPlugin]}
                   options={{
                     ...baseChartOptions,
                     indexAxis: "y",
+                    scales: {
+                      x: { stacked: true, grid: { color: "#e8edf4" } },
+                      y: { stacked: true, grid: { display: false } },
+                    },
+                    layout: {
+                      padding: {
+                        right: 28,
+                      },
+                    },
                     plugins: {
                       ...baseChartOptions.plugins,
-                      legend: { display: false },
+                      legend: {
+                        display: true,
+                        position: "bottom",
+                      },
                     },
                   }}
                 />
@@ -1066,6 +1481,22 @@ const DashboardPage = () => {
               <ChartPanel
                 title="Serviceability Analysis"
                 subtitle="Health classification at major locations"
+                footer={
+                  <div className="serviceability-summary">
+                    <div>
+                      <span>Total Count</span>
+                      <strong>{compactNumber(analytics.total)}</strong>
+                    </div>
+                    <div>
+                      <span>Black Box Count</span>
+                      <strong>{compactNumber(blackBoxTotal)}</strong>
+                    </div>
+                    <div>
+                      <span>Blue Box Count</span>
+                      <strong>{compactNumber(blueBoxTotal)}</strong>
+                    </div>
+                  </div>
+                }
               >
                 <Bar
                   data={serviceData}
@@ -1109,43 +1540,6 @@ const DashboardPage = () => {
               </ChartPanel>
             </section>
 
-            <section className="enterprise-card health-panel">
-              <div className="gov-card-heading">
-                <div>
-                  <h3>Asset Health Monitoring</h3>
-                  <p>Service readiness across the registered asset base</p>
-                </div>
-                <FiShield />
-              </div>
-              <div className="health-grid">
-                {[
-                  ["Healthy Assets", analytics.health[0], "green"],
-                  ["Maintenance Due", analytics.health[1], "yellow"],
-                  ["Critical Assets", analytics.health[2], "red"],
-                ].map(([label, value, tone]) => (
-                  <div className="health-meter" key={label}>
-                    <div
-                      className={`health-ring health-ring--${tone}`}
-                      style={{ "--health-value": `${value * 3.6}deg` }}
-                    >
-                      <strong>{value}%</strong>
-                    </div>
-                    <div>
-                      <span>{label}</span>
-                      <small>
-                        {tone === "green"
-                          ? compactNumber(analytics.serviceable)
-                          : tone === "yellow"
-                            ? compactNumber(analytics.maintenance)
-                            : compactNumber(analytics.critical)}{" "}
-                        assets
-                      </small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             <section className="enterprise-card india-panel">
               <div className="india-command-map">
                 <FiMap />
@@ -1171,12 +1565,16 @@ const DashboardPage = () => {
                 <div className="location-table-head">
                   <span>Location</span>
                   <span>Assets</span>
+                  <span>Black Box</span>
+                  <span>Blue Box</span>
                   <span>Status</span>
                 </div>
                 {analytics.locations.map(([name, value]) => (
                   <div className="location-row" key={name}>
                     <strong>{name}</strong>
                     <span>{compactNumber(value.total)}</span>
+                    <span>{compactNumber(getLocationBoxCounts(name).black)}</span>
+                    <span>{compactNumber(getLocationBoxCounts(name).blue)}</span>
                     <em
                       className={
                         value.repair + value.nonServiceable > 0
@@ -1342,7 +1740,7 @@ const DashboardPage = () => {
           </main>
 
           <aside className="command-rail">
-            <section className="enterprise-card rail-panel alert-panel">
+            {/* <section className="enterprise-card rail-panel alert-panel">
               <div className="rail-heading">
                 <h3>System Notifications</h3>
                 <span>{analytics.critical + analytics.maintenance}</span>
@@ -1378,8 +1776,8 @@ const DashboardPage = () => {
                   </div>
                 </article>
               </div>
-            </section>
-            <section className="enterprise-card rail-panel">
+            </section> */}
+            {/* <section className="enterprise-card rail-panel">
               <div className="rail-heading">
                 <h3>Recent Activities</h3>
                 <FiActivity />
@@ -1402,8 +1800,8 @@ const DashboardPage = () => {
                   </article>
                 ))}
               </div>
-            </section>
-            <section className="enterprise-card rail-panel quick-panel">
+            </section> */}
+            {/* <section className="enterprise-card rail-panel quick-panel">
               <div className="rail-heading">
                 <h3>Quick Actions</h3>
                 <FiSettings />
@@ -1429,39 +1827,60 @@ const DashboardPage = () => {
                   </Link>
                 )}
               </div>
-            </section>
+            </section> */}
           </aside>
         </div>
 
-        {selectedBreakdownData && (
+        {activeModalData && (
           <div
             className="dashboard-modal-backdrop"
           role="presentation"
           onClick={() => {
             setSelectedBreakdown(null);
             setSelectedBreakdownStatus("all");
+            setSelectedOperational(null);
+            setSelectedIntelligence(null);
           }}
         >
             <div
               className="dashboard-modal"
               role="dialog"
               aria-modal="true"
-              aria-label={`${selectedBreakdownData.label} serial numbers`}
+              aria-label={`${activeModalData.label} serial numbers`}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="dashboard-modal__header">
                 <div>
-                  <h3>{selectedBreakdownData.label}</h3>
+                  <h3>{activeModalData.title || activeModalData.label}</h3>
                   <p>
-                    {compactNumber(selectedBreakdownData.value)} box serial
-                    numbers
+                    {selectedBreakdownData
+                      ? selectedBreakdownData.summaryItems
+                        ? `${compactNumber(selectedBreakdownData.value)} assets`
+                        : `${compactNumber(selectedBreakdownData.value)} box serial numbers`
+                      : activeModalData.title === "Most Used Category"
+                        ? `${compactNumber(activeModalData.value)} assets`
+                        : `${compactNumber(activeModalData.value)} box serial numbers`}
                   </p>
                 </div>
                 <div className="dashboard-modal__header-summary">
                   <strong>
-                    {selectedBreakdownData.label} {selectedBreakdownData.selectedStatusLabel}
+                    {selectedBreakdownData
+                      ? selectedBreakdownData.summaryItems
+                        ? selectedBreakdownData.label
+                        : `${selectedBreakdownData.label} ${selectedBreakdownData.selectedStatusLabel}`.toUpperCase()
+                      : activeModalData.title === "Most Used Category"
+                        ? "BLACK"
+                        : `${activeModalData.label} BOX SERIAL NUMBERS`}
                   </strong>
-                  <span>{compactNumber(selectedBreakdownData.serials.length)}</span>
+                  <span>
+                    {compactNumber(
+                      selectedBreakdownData
+                        ? selectedBreakdownData.summaryItems
+                          ? selectedBreakdownData.value
+                          : selectedBreakdownData.serials.length
+                        : activeModalData.value,
+                    )}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -1469,34 +1888,68 @@ const DashboardPage = () => {
                   onClick={() => {
                     setSelectedBreakdown(null);
                     setSelectedBreakdownStatus("all");
+                    setSelectedOperational(null);
+                    setSelectedIntelligence(null);
                   }}
                   aria-label="Close popup"
                 >
                   <FiX />
                 </button>
               </div>
-              {selectedBreakdownData.statusOptions.length > 1 && (
-                <div className="dashboard-modal__filters" role="tablist">
-                  {selectedBreakdownData.statusOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      className={`dashboard-modal__filter ${
-                        selectedBreakdownStatus === option.key ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelectedBreakdownStatus(option.key)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {selectedBreakdownData &&
+                !selectedBreakdownData.summaryItems &&
+                selectedBreakdownData.statusOptions.length > 1 && (
+                  <div className="dashboard-modal__filters" role="tablist">
+                    {selectedBreakdownData.statusOptions.map((option) => (
+                      <button
+                        key={option.key}
+                        type="button"
+                        className={`dashboard-modal__filter ${
+                          selectedBreakdownStatus === option.key
+                            ? "is-active"
+                            : ""
+                        }`}
+                        onClick={() => setSelectedBreakdownStatus(option.key)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               <div className="dashboard-modal__body">
-                {selectedBreakdownData.serials.length === 0 ? (
-                  <p className="dashboard-modal__empty">No serial numbers found.</p>
+                {selectedBreakdownData ? (
+                  selectedBreakdownData.summaryItems ? (
+                    <ul className="dashboard-modal__list">
+                      {selectedBreakdownData.summaryItems.map((item) => (
+                        <li key={item.key} className="dashboard-modal__item">
+                          <span className="dashboard-modal__serial">{item.label}</span>
+                          <span className="dashboard-modal__summary-value">
+                            {compactNumber(item.value)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : selectedBreakdownData.serials.length === 0 ? (
+                    <p className="dashboard-modal__empty">No serial numbers found.</p>
+                  ) : (
+                    <ul className="dashboard-modal__list">
+                      {selectedBreakdownData.serials.map((item) => (
+                        <li key={item.serial} className="dashboard-modal__item">
+                          <span className="dashboard-modal__serial">{item.serial}</span>
+                          <span className={`dashboard-modal__status dashboard-modal__status--${item.tone}`}>
+                            {item.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                ) : activeModalData.serials.length === 0 ? (
+                  <p className="dashboard-modal__empty">
+                    {activeModalData.emptyMessage || "No box serial numbers found."}
+                  </p>
                 ) : (
                   <ul className="dashboard-modal__list">
-                    {selectedBreakdownData.serials.map((item) => (
+                    {activeModalData.serials.map((item) => (
                       <li key={item.serial} className="dashboard-modal__item">
                         <span className="dashboard-modal__serial">{item.serial}</span>
                         <span className={`dashboard-modal__status dashboard-modal__status--${item.tone}`}>

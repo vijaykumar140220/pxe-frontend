@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -9,6 +9,7 @@ import { getBoxRemarkText } from "../utils/reportData";
 const TRANSACTION_API_URL = "http://127.0.0.1:5000/transaction-history";
 const SELECTED_BOXES_STORAGE_KEY = "pxe_selected_boxes";
 const CHALLAN_SEQUENCE_STORAGE_KEY = "pxe_challan_daily_sequence";
+const MAX_BOXES_PER_REPORT_PAGE = 15;
 
 const getChallanDatePart = () => {
   const today = new Date();
@@ -44,7 +45,7 @@ const createChallanNumber = (serial) =>
   `${getChallanDatePart()}${String(serial).padStart(2, "0")}`;
 
 const ViewPage = () => {
-  const reportRef = useRef(null);
+  const reportPageRefs = useRef([]);
   const [records, setRecords] = useState([]);
   const [challanSerial, setChallanSerial] = useState(getCurrentChallanSerial);
   const challanNumber = createChallanNumber(challanSerial);
@@ -217,6 +218,19 @@ const ViewPage = () => {
       return;
     }
 
+    // A voucher page is intentionally limited to 15 serial-number rows.
+    // Additional boxes remain in the same report and are printed on page two.
+    if (
+      selectedBoxes.length > 0 &&
+      selectedBoxes.length % MAX_BOXES_PER_REPORT_PAGE === 0
+    ) {
+      const nextPage =
+        Math.floor(selectedBoxes.length / MAX_BOXES_PER_REPORT_PAGE) + 1;
+      toast(`Page limit reached. This box will be added to page ${nextPage} of the PDF.`, {
+        icon: "ℹ️",
+      });
+    }
+
     setSelectedBoxes((prev) => {
       const updated = [
         ...prev,
@@ -296,6 +310,12 @@ const ViewPage = () => {
     }
   };
 
+  const reportPages = selectedBoxes.reduce((pages, box, index) => {
+    const pageIndex = Math.floor(index / MAX_BOXES_PER_REPORT_PAGE);
+    if (!pages[pageIndex]) pages[pageIndex] = [];
+    pages[pageIndex].push(box);
+    return pages;
+  }, []);
   const cboxQuantity = selectedBoxes.length;
   const totalPowerAdapterQty = selectedBoxes.reduce(
     (sum, item) => sum + Number(item.powerAdapterQty || 0),
@@ -306,32 +326,6 @@ const ViewPage = () => {
     0,
   );
 
-  const serialColumns = 3;
-  const serialRows = (() => {
-    const rows = [];
-    const perColumn = Math.max(
-      1,
-      Math.ceil(selectedBoxes.length / serialColumns),
-    );
-    for (let rowIndex = 0; rowIndex < perColumn; rowIndex += 1) {
-      const row = [];
-      for (let colIndex = 0; colIndex < serialColumns; colIndex += 1) {
-        const itemIndex = colIndex * perColumn + rowIndex;
-        const item = selectedBoxes[itemIndex];
-        row.push(
-          item
-            ? {
-                slNo: itemIndex + 1,
-                serial: item.boxSerialNumber,
-              }
-            : null,
-        );
-      }
-      rows.push(row);
-    }
-    return rows;
-  })();
-
   const handleGeneratePdf = async () => {
     if (selectedBoxes.length === 0) {
       setReportError(
@@ -341,63 +335,83 @@ const ViewPage = () => {
     }
 
     setReportError("");
-    if (!reportRef.current) return;
+    if (reportPages.length === 0) return;
 
     setIsGeneratingReport(true);
 
     try {
-      const element = reportRef.current;
-      const originalWidth = element.style.width;
-      const originalMaxWidth = element.style.maxWidth;
-      const originalMarginLeft = element.style.marginLeft;
-      const originalMarginRight = element.style.marginRight;
-
-      element.style.width = "210mm";
-      element.style.maxWidth = "210mm";
-      element.style.marginLeft = "auto";
-      element.style.marginRight = "auto";
-
       const initialScrollY = window.scrollY;
       window.scrollTo(0, 0);
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        scrollY: 0,
-        width: element.offsetWidth,
-        height: element.offsetHeight,
-      });
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 8;
+      const pdfWidth = pageWidth - margin * 2;
+      const canvases = [];
+      const reportElements = reportPages
+        .map((_, pageIndex) => reportPageRefs.current[pageIndex])
+        .filter(Boolean);
 
-      element.style.width = originalWidth;
-      element.style.maxWidth = originalMaxWidth;
-      element.style.marginLeft = originalMarginLeft;
-      element.style.marginRight = originalMarginRight;
+      const originalStyles = reportElements.map((element) => ({
+        element,
+        width: element.style.width,
+        maxWidth: element.style.maxWidth,
+        marginLeft: element.style.marginLeft,
+        marginRight: element.style.marginRight,
+      }));
+
+      reportElements.forEach((element) => {
+        element.style.width = "210mm";
+        element.style.maxWidth = "210mm";
+        element.style.marginLeft = "auto";
+        element.style.marginRight = "auto";
+      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      for (const element of reportElements) {
+        canvases.push(
+          await html2canvas(element, {
+            scale: 2,
+            backgroundColor: "#ffffff",
+            useCORS: true,
+            scrollY: 0,
+            width: element.offsetWidth,
+            height: element.offsetHeight,
+          }),
+        );
+      }
+      originalStyles.forEach(({ element, width, maxWidth, marginLeft, marginRight }) => {
+        element.style.width = width;
+        element.style.maxWidth = maxWidth;
+        element.style.marginLeft = marginLeft;
+        element.style.marginRight = marginRight;
+      });
       window.scrollTo(0, initialScrollY);
+
+      if (canvases.length === 0) return;
 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 8;
-      const pdfWidth = pageWidth - margin * 2;
-      const pdfHeight = pageHeight - margin * 2;
 
-      const imgData = canvas.toDataURL("image/png");
-      const pageImageHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      if (pageImageHeight <= pdfHeight) {
-        pdf.addImage(imgData, "PNG", margin, margin, pdfWidth, pageImageHeight);
-      } else {
-        const scale = pdfHeight / pageImageHeight;
-        const fitWidth = pdfWidth * scale;
-        const fitHeight = pdfHeight;
-        const posX = (pageWidth - fitWidth) / 2;
-        pdf.addImage(imgData, "PNG", posX, margin, fitWidth, fitHeight);
+      for (const [index, canvas] of canvases.entries()) {
+        if (index > 0) pdf.addPage("a4", "portrait");
+        const naturalImageHeight = (canvas.height * pdfWidth) / canvas.width;
+        const maxImageHeight = pageHeight - margin * 2;
+        const scale = Math.min(1, maxImageHeight / naturalImageHeight);
+        const imageWidth = pdfWidth * scale;
+        const imageHeight = naturalImageHeight * scale;
+        pdf.addImage(
+          canvas.toDataURL("image/png"),
+          "PNG",
+          (pageWidth - imageWidth) / 2,
+          margin,
+          imageWidth,
+          imageHeight,
+        );
       }
 
       pdf.save(`PXE-Report-${challanNumber}.pdf`);
@@ -609,8 +623,18 @@ const ViewPage = () => {
           )}
         </section>
 
-        <div ref={reportRef}>
-          <section className="enterprise-card lookup-card mt-4 report-voucher">
+        <div className="report-pages">
+          {reportPages.map((pageBoxes, pageIndex) => {
+            const pageStartNumber = pageIndex * MAX_BOXES_PER_REPORT_PAGE;
+
+            return (
+          <section
+            key={`report-page-${pageIndex}`}
+            ref={(element) => {
+              reportPageRefs.current[pageIndex] = element;
+            }}
+            className="enterprise-card lookup-card mt-4 report-voucher"
+          >
             <div className="report-header-top d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
               <div className="report-left">
                 <div className="report-logo-wrap d-flex align-items-center">
@@ -628,6 +652,7 @@ const ViewPage = () => {
             </div>
             {/* ================= ISSUE VOUCHER ================= */}
 
+{pageIndex === 0 && (
 <div className="voucher-section">
 
     <h3 className="voucher-title">
@@ -673,6 +698,7 @@ const ViewPage = () => {
     </table>
 
 </div>
+)}
 
 {/* ================= SERIAL NUMBER TABLE ================= */}
 
@@ -708,11 +734,11 @@ const ViewPage = () => {
 
         <tbody>
 
-            {selectedBoxes.map((item,index)=>(
+            {pageBoxes.map((item,index)=>(
 
                 <tr key={item.id}>
 
-                    <td>{index+1}</td>
+                    <td>{pageStartNumber + index + 1}</td>
 
                     <td>{item.boxSerialNumber}</td>
 
@@ -730,6 +756,7 @@ const ViewPage = () => {
 
 </div>
 
+            {pageIndex === reportPages.length - 1 && (
             <div className="row g-4 mb-4">
               <div className="col-md-6">
                 <h5 className="signature-heading">Issued By</h5>
@@ -838,7 +865,23 @@ const ViewPage = () => {
                 </div>
               </div>
             </div>
+            )}
+            {pageIndex === reportPages.length - 1 && (
+              <p className="report-terms">
+                <strong>Terms &amp; Conditions:</strong> Goods are being
+                transported strictly for the purpose of examination, testing,
+                and/or repair under Rule 55 of the CGST Rules, 2017. These
+                items remain the property of the sender, are not intended for
+                resale, and will be returned to the sender upon completion of
+                the examination/repair.
+              </p>
+            )}
+            <footer className="report-page-footer">
+              Page {pageIndex + 1} of {reportPages.length}
+            </footer>
           </section>
+            );
+          })}
         </div>
         <div className="d-flex flex-column align-items-end mt-3">
           {reportError && (

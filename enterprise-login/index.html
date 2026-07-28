@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="PXE Box Management System login portal" />
+    <title>PXE Box Management System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/login.css" />
+  </head>
+  <body>
+    <main class="pxe-login-page">
+      <section class="pxe-login-layout">
+        <aside class="pxe-login-visual" aria-hidden="true">
+          <img
+            src="../public/login.jpeg"
+            alt=""
+            class="pxe-login-visual__image"
+          />
+          <div class="pxe-login-visual__overlay"></div>
+          <div class="pxe-login-visual__content">
+            <div class="pxe-hero-copy">
+              <p class="pxe-hero-copy__eyebrow">PXE Deployment</p>
+              <h2>Enterprise control for box operations</h2>
+              <p>
+                Centralized deployment, inventory tracking, boot workflows, and
+                server health visibility in one secure workspace.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="pxe-login-panel">
+          <div class="pxe-login-card fade-in-up">
+            <div class="d-flex justify-content-end mb-3">
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm px-3 rounded-pill pxe-theme-toggle"
+                id="themeToggle"
+              >
+                <i class="bi bi-moon-stars me-1"></i>
+                Dark Mode
+              </button>
+            </div>
+
+            <div class="text-center mb-4">
+              <div class="pxe-logo-wrap">
+                <img src="../public/logo.png" alt="PXE Logo" class="pxe-logo" />
+              </div>
+              <h1 class="pxe-title mb-1">PXE BOX</h1>
+              <div class="pxe-subtitle">MANAGEMENT SYSTEM</div>
+              <p class="pxe-description mb-0">
+                Centralized. Automated. Scalable.
+              </p>
+            </div>
+
+            <form id="loginForm" class="needs-validation" novalidate>
+              <div class="mb-3">
+                <label for="username" class="form-label pxe-label"
+                  >Username</label
+                >
+                <div class="input-group pxe-input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-person"></i
+                  ></span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="username"
+                    name="username"
+                    placeholder="Enter username"
+                    autocomplete="username"
+                    required
+                  />
+                  <div class="invalid-feedback">Username is required.</div>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <label for="password" class="form-label pxe-label"
+                  >Password</label
+                >
+                <div class="input-group pxe-input-group">
+                  <span class="input-group-text"
+                    ><i class="bi bi-lock"></i
+                  ></span>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    placeholder="Enter password"
+                    autocomplete="current-password"
+                    minlength="8"
+                    required
+                  />
+                  <button
+                    class="btn pxe-password-toggle"
+                    type="button"
+                    id="passwordToggle"
+                    aria-label="Toggle password visibility"
+                  >
+                    <i class="bi bi-eye-slash"></i>
+                  </button>
+                  <div class="invalid-feedback">
+                    Password must be at least 8 characters.
+                  </div>
+                </div>
+                <div class="pxe-strength mt-2" aria-hidden="true">
+                  <div class="pxe-strength__bar" id="strengthBar"></div>
+                  <span class="pxe-strength__label" id="strengthLabel"
+                    >Weak</span
+                  >
+                </div>
+              </div>
+
+              <div
+                class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-4"
+              >
+                <div class="form-check pxe-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="rememberMe"
+                    checked
+                  />
+                  <label class="form-check-label" for="rememberMe"
+                    >Remember Me</label
+                  >
+                </div>
+                <button type="button" class="btn btn-link pxe-forgot">
+                  Forgot Password?
+                </button>
+              </div>
+
+              <button type="submit" class="btn pxe-login-btn w-100">
+                <span class="pxe-login-btn__text">Login</span>
+                <span
+                  class="spinner-border spinner-border-sm d-none"
+                  id="loginSpinner"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+              </button>
+
+              <div class="pxe-divider my-4">
+                <span>OR LOGIN WITH</span>
+              </div>
+
+              <div class="d-grid gap-2 pxe-social-grid">
+                <button type="button" class="btn pxe-social-btn">
+                  <i class="bi bi-microsoft me-2"></i>Microsoft
+                </button>
+                <button type="button" class="btn pxe-social-btn">
+                  <i class="bi bi-google me-2"></i>Google
+                </button>
+                <button type="button" class="btn pxe-social-btn">
+                  <i class="bi bi-github me-2"></i>GitHub
+                </button>
+              </div>
+            </form>
+
+            <div class="pxe-footer mt-4 pt-3">
+              <div class="pxe-footer__meta">
+                <select
+                  class="form-select form-select-sm pxe-language"
+                  aria-label="Language selector"
+                >
+                  <option selected>English</option>
+                  <option>Hindi</option>
+                  <option>Spanish</option>
+                </select>
+                <span class="pxe-version">v2.0</span>
+              </div>
+              <div class="pxe-footer__links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms</a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div
+          id="loginToast"
+          class="toast pxe-toast"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <div class="toast-header">
+            <strong class="me-auto">PXE Box Management System</strong>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="toast"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="toast-body" id="toastMessage">Welcome back.</div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/login.js"></script>
+  </body>
+</html>

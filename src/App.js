@@ -21,7 +21,13 @@ import AdminRoute from "./Components/AdminRoute";
 import { AuthProvider, useAuth } from "./Context/AuthContext";
 import { RoleProvider } from "./Context/RoleContext";
 import { Toaster } from "react-hot-toast";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
 import "react-toastify/dist/ReactToastify.css";
 
@@ -38,7 +44,10 @@ const ACTIVITY_EVENTS = [
 const AppContent = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, logout } = useAuth();
+  const location = useLocation();
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const isLoginPage = location.pathname === "/login";
 
   useEffect(() => {
     const loadingTimer = window.setTimeout(() => setIsAppLoading(false), 1400);
@@ -102,8 +111,26 @@ const AppContent = () => {
     };
   }, [isAuthenticated, dispatch, logout]);
 
+  useEffect(() => {
+    setIsNavOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (isLoginPage || !isAuthenticated || !isNavOpen) {
+      document.body.style.overflow = "";
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isAuthenticated, isLoginPage, isNavOpen]);
+
   return (
-    <div className="App">
+    <div className={`App ${isLoginPage ? "App--login" : ""}`}>
       {isAppLoading && (
         <div className="app-loader" role="status" aria-label="Loading PXE Portal">
           <div className="app-loader__content">
@@ -123,12 +150,8 @@ const AppContent = () => {
           </div>
         </div>
       )}
-      <Header />
-      <div
-        className={`app-shell ${isAuthenticated ? "app-shell--with-sidebar" : ""}`}
-      >
-        {isAuthenticated && <Sidebar />}
-        <main className="app-main">
+      {isLoginPage ? (
+        <main className="app-login-main">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
 
@@ -235,8 +258,132 @@ const AppContent = () => {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
-      </div>
-      <Footer />
+      ) : (
+        <>
+          <Header
+            isNavOpen={isNavOpen}
+            onMenuClick={() => setIsNavOpen((current) => !current)}
+            onNavClose={() => setIsNavOpen(false)}
+          />
+          <div
+            className={`app-shell ${
+              isAuthenticated ? "app-shell--with-sidebar" : ""
+            }`}
+          >
+            {isAuthenticated && (
+              <Sidebar isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} />
+            )}
+            <main className="app-main">
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <ViewPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/add"
+                  element={
+                    <AdminRoute>
+                      <AddPage />
+                    </AdminRoute>
+                  }
+                />
+
+                <Route
+                  path="/register"
+                  element={
+                    <AdminRoute>
+                      <RegisterPage />
+                    </AdminRoute>
+                  }
+                />
+
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/inventory-master"
+                  element={
+                    <AdminRoute>
+                      <InventoryMasterPage />
+                    </AdminRoute>
+                  }
+                />
+
+                <Route
+                  path="/asset-history"
+                  element={
+                    <ProtectedRoute>
+                      <AssetHistoryPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/transaction-register"
+                  element={
+                    <ProtectedRoute>
+                      <TransactionRegisterPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/transaction-history"
+                  element={
+                    <ProtectedRoute>
+                      <TransactionRegisterPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/live-status"
+                  element={
+                    <ProtectedRoute>
+                      <LiveStatusPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <ViewPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/settings"
+                  element={
+                    <AdminRoute>
+                      <SettingsPage />
+                    </AdminRoute>
+                  }
+                />
+
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+          </div>
+          <Footer />
+        </>
+      )}
       <Toaster
         position="top-center"
         reverseOrder={false}

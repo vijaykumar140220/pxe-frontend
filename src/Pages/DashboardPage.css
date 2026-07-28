@@ -359,6 +359,41 @@
   height: 264px;
 }
 
+.gov-chart-footer {
+  padding: 0 18px 8px;
+}
+
+.serviceability-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.serviceability-summary div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.serviceability-summary span {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.serviceability-summary strong {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
 .gov-intelligence-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -593,6 +628,13 @@
   word-break: break-word;
 }
 
+.dashboard-modal__summary-value {
+  flex: 0 0 auto;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
 .dashboard-modal__serial {
   min-width: 0;
 }
@@ -623,71 +665,14 @@
   background: #e2e8f0;
 }
 
-.health-panel {
-  margin-bottom: 16px;
-  padding: 18px;
+.dashboard-modal__status--dark {
+  color: #ffffff;
+  background: #0f172a;
 }
-.health-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-}
-.health-meter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 13px;
-  min-height: 92px;
-  border-right: 1px solid #e2e8f0;
-}
-.health-meter:last-child {
-  border-right: 0;
-}
-.health-meter span,
-.health-meter small {
-  display: block;
-}
-.health-meter span {
-  color: #334155;
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-.health-meter small {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 0.67rem;
-}
-.health-ring {
-  display: grid;
-  flex: 0 0 68px;
-  width: 68px;
-  height: 68px;
-  place-items: center;
-  border-radius: 50%;
-  background: conic-gradient(var(--ring-color) var(--health-value), #e8edf4 0);
-  position: relative;
-}
-.health-ring::after {
-  content: "";
-  position: absolute;
-  inset: 7px;
-  border-radius: 50%;
-  background: #fff;
-}
-.health-ring strong {
-  position: relative;
-  z-index: 1;
-  color: #081a3a;
-  font-size: 0.83rem;
-}
-.health-ring--green {
-  --ring-color: #16a34a;
-}
-.health-ring--yellow {
-  --ring-color: #f59e0b;
-}
-.health-ring--red {
-  --ring-color: #dc2626;
+
+.dashboard-modal__status--blue {
+  color: #ffffff;
+  background: #1e40af;
 }
 
 .india-panel {
@@ -778,7 +763,7 @@
 .location-table-head,
 .location-row {
   display: grid;
-  grid-template-columns: 1fr 80px 90px;
+  grid-template-columns: 1fr 80px 90px 90px 90px;
   align-items: center;
   gap: 12px;
 }
@@ -1191,17 +1176,6 @@
   .gov-intelligence-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .health-grid {
-    grid-template-columns: 1fr;
-  }
-  .health-meter {
-    justify-content: flex-start;
-    border-right: 0;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  .health-meter:last-child {
-    border-bottom: 0;
-  }
   .india-panel {
     grid-template-columns: 1fr;
   }
@@ -1242,6 +1216,94 @@
   .database-status {
     width: 100%;
     justify-content: center;
+  }
+
+  .dashboard-modal-backdrop {
+    padding: 12px;
+    align-items: end;
+  }
+
+  .dashboard-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    border-radius: 18px 18px 0 0;
+  }
+
+  .dashboard-modal__header {
+    padding: 16px 16px 12px;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .dashboard-modal__header h3 {
+    font-size: 0.92rem;
+    line-height: 1.25;
+  }
+
+  .dashboard-modal__header p {
+    font-size: 0.72rem;
+  }
+
+  .dashboard-modal__header-summary {
+    align-items: flex-end;
+    padding-top: 0;
+  }
+
+  .dashboard-modal__header-summary strong {
+    white-space: normal;
+    text-align: right;
+    font-size: 0.64rem;
+  }
+
+  .dashboard-modal__header-summary span {
+    font-size: 1.1rem;
+  }
+
+  .dashboard-modal__close {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .dashboard-modal__filters {
+    padding: 0 16px 12px;
+    gap: 7px;
+  }
+
+  .dashboard-modal__filter {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+
+  .dashboard-modal__body {
+    padding: 14px 16px 18px;
+  }
+
+  .dashboard-modal__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .dashboard-modal__item {
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    min-width: 0;
+  }
+
+  .dashboard-modal__serial {
+    font-size: 0.7rem;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .dashboard-modal__summary-value {
+    font-size: 0.8rem;
+  }
+
+  .dashboard-modal__status {
+    padding: 4px 7px;
+    font-size: 0.58rem;
   }
 }
 

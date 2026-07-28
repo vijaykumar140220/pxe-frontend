@@ -146,16 +146,46 @@
 }
 
 .master-table-card .table-responsive {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .master-table {
-  min-width: 1320px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 .master-table th,
 .master-table td {
   text-align: center;
+  word-break: break-word;
+  white-space: normal;
+  font-size: 0.82rem;
+  padding: 10px 8px;
+}
+
+.master-table .sort-header {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.master-table .sort-header.is-active {
+  background: transparent;
+}
+
+.master-table .sort-header svg {
+  flex: 0 0 auto;
 }
 
 .master-actions {
@@ -298,6 +328,38 @@
   .master-pagination {
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .master-table-card .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .master-table {
+    min-width: 980px;
+    table-layout: auto;
+  }
+
+  .master-table th,
+  .master-table td {
+    white-space: nowrap;
+    word-break: normal;
+    font-size: 0.75rem;
+    padding: 9px 10px;
+  }
+
+  .master-table .sort-header {
+    white-space: nowrap;
+    font-size: 0.68rem;
+  }
+
+  .master-actions {
+    gap: 6px;
+  }
+
+  .master-actions button {
+    width: 32px;
+    height: 32px;
   }
 
   .master-page-size select,
