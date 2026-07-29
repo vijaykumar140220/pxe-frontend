@@ -89,6 +89,16 @@ const formatExcelDate = (value) => {
     : parsed.toISOString().split("T")[0];
 };
 
+const formatDisplayDate = (value) => {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value).trim();
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const year = parsed.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 const normalizeExcelRow = (row) => ({
   serialNumber: String(
     getCellValue(row, [
@@ -613,10 +623,10 @@ const InventoryMasterPage = () => {
                     <tr key={record._id || record.serialNumber}>
                       <td>{pageStartIndex + index + 1}</td>
                       <td className="fw-semibold box-serial-name">{record.serialNumber}</td>
-                      <td>{record.itemName}</td>
+                      <td className="item-name-cell">{record.itemName}</td>
                       <td>{record.category}</td>
-                      <td>{record.invoiceNumber}</td>
-                      <td>{record.purchaseDate}</td>
+                      <td className="invoice-number-cell">{record.invoiceNumber}</td>
+                      <td className="purchase-date-cell">{formatDisplayDate(record.purchaseDate)}</td>
                       <td>{record.purchasePrice}</td>
                       <td className="vendor-column">{renderHoverContent(record.vendor)}</td>
                       <td>{record.warranty}</td>

@@ -160,11 +160,13 @@ const RegisterPage = () => {
                 name="assetHistoryAccess"
                 value={form.assetHistoryAccess}
                 onChange={handleChange}
+                required
               >
                 <option value="YES">Yes</option>
                 <option value="NO">No</option>
               </select>
               {errors.assetHistoryAccess && <p>{errors.assetHistoryAccess}</p>}
+              
             </div>
             <Field
               label="Password"

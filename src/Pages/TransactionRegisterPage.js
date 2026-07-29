@@ -315,6 +315,8 @@ const TransactionRegisterPage = () => {
   const [showForm, setShowForm] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const [customPageSize, setCustomPageSize] = useState("");
+  const [recordRange, setRecordRange] = useState(null);
   const [locationOptions, setLocationOptions] = useState(
     defaultLocationOptions,
   );
@@ -353,12 +355,23 @@ const TransactionRegisterPage = () => {
   );
   const totalPages = Math.max(
     1,
-    Math.ceil(sortedRecords.length / recordsPerPage),
+    recordRange ? 1 : Math.ceil(sortedRecords.length / recordsPerPage),
   );
-  const pageStartIndex = (currentPage - 1) * recordsPerPage;
+  const rangeStartIndex = recordRange
+    ? Math.min(Math.max(recordRange.start - 1, 0), sortedRecords.length)
+    : null;
+  const rangeEndIndex = recordRange
+    ? Math.min(recordRange.end, sortedRecords.length)
+    : null;
+  const pageStartIndex = recordRange
+    ? rangeStartIndex
+    : (currentPage - 1) * recordsPerPage;
   const paginatedRecords = useMemo(
-    () => sortedRecords.slice(pageStartIndex, pageStartIndex + recordsPerPage),
-    [sortedRecords, pageStartIndex, recordsPerPage],
+    () =>
+      recordRange
+        ? sortedRecords.slice(rangeStartIndex, rangeEndIndex)
+        : sortedRecords.slice(pageStartIndex, pageStartIndex + recordsPerPage),
+    [sortedRecords, recordRange, rangeStartIndex, rangeEndIndex, pageStartIndex, recordsPerPage],
   );
   const tableColSpan = columns.length + 1 + (isAdmin ? 1 : 0);
 
@@ -475,6 +488,44 @@ const TransactionRegisterPage = () => {
 
   const handleSort = (key) => {
     setSortConfig((current) => nextSortConfig(current, key));
+    setCurrentPage(1);
+  };
+
+  const applyCountInput = (value) => {
+    const text = String(value).trim();
+    if (!text) {
+      setCustomPageSize("");
+      setCurrentPage(1);
+      setRecordRange(null);
+      return;
+    }
+
+    const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (rangeMatch) {
+      const start = Number(rangeMatch[1]);
+      const end = Number(rangeMatch[2]);
+
+      if (start < 1 || end < 1 || start > end) {
+        toast.error("Enter range like 20-30");
+        return;
+      }
+
+      if (start > sortedRecords.length) {
+        toast.error(`Only ${sortedRecords.length} records available`);
+        return;
+      }
+
+      setRecordRange({ start, end });
+      setCustomPageSize(`${start}-${end}`);
+      setCurrentPage(1);
+      return;
+    }
+
+    const nextSize = Number(text);
+    if (!Number.isFinite(nextSize) || nextSize < 1) return;
+    setRecordRange(null);
+    setRecordsPerPage(nextSize);
+    setCustomPageSize(String(nextSize));
     setCurrentPage(1);
   };
 
@@ -763,8 +814,8 @@ const TransactionRegisterPage = () => {
             <div>
               <strong>{records.length}</strong> transaction records
               <span>
-                Showing {records.length === 0 ? 0 : pageStartIndex + 1}-
-                {Math.min(pageStartIndex + recordsPerPage, records.length)}
+                Showing {paginatedRecords.length === 0 ? 0 : pageStartIndex + 1}-
+                {pageStartIndex + paginatedRecords.length}
               </span>
             </div>
             <div className="transaction-page-size">
@@ -773,6 +824,8 @@ const TransactionRegisterPage = () => {
                 value={recordsPerPage}
                 onChange={(event) => {
                   setRecordsPerPage(Number(event.target.value));
+                  setRecordRange(null);
+                  setCustomPageSize("");
                   setCurrentPage(1);
                 }}
               >
@@ -781,6 +834,19 @@ const TransactionRegisterPage = () => {
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="20-30"
+                value={customPageSize}
+                onChange={(event) => setCustomPageSize(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") applyCountInput(customPageSize);
+                }}
+                onBlur={() => {
+                  if (customPageSize) applyCountInput(customPageSize);
+                }}
+              />
             </div>
           </div>
           <div className="table-responsive">
@@ -871,7 +937,7 @@ const TransactionRegisterPage = () => {
               </tbody>
             </table>
           </div>
-          {records.length > 0 && (
+          {records.length > 0 && !recordRange && (
             <div className="transaction-pagination">
               <button
                 type="button"

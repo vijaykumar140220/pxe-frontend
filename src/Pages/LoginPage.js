@@ -1,51 +1,47 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
-import { FaSpinner, FaShieldAlt } from "react-icons/fa";
+import { FaRedoAlt, FaSpinner, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../Context/AuthContext";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./Login.css";
 
+const CAPTCHA_LENGTH = 5;
+const CAPTCHA_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+const createCaptcha = () =>
+  Array.from({ length: CAPTCHA_LENGTH }, () =>
+    CAPTCHA_CHARSET[Math.floor(Math.random() * CAPTCHA_CHARSET.length)],
+  ).join("");
+
 const LoginPage = () => {
   const [form, setForm] = useState({
     username: "",
     password: "",
-    rememberMe: true,
   });
+  const [captcha, setCaptcha] = useState(() => createCaptcha());
+  const [captchaInput, setCaptchaInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [strength, setStrength] = useState(0);
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { login, loginWithExternalToken } = useAuth();
 
-  const strengthLabel = useMemo(() => {
-    if (strength <= 1) return "Weak";
-    if (strength === 2) return "Fair";
-    if (strength === 3) return "Strong";
-    return "Very Strong";
-  }, [strength]);
-
-  const setPasswordStrength = (value) => {
-    let score = 0;
-    if (value.length >= 8) score += 1;
-    if (/[A-Z]/.test(value)) score += 1;
-    if (/[0-9]/.test(value)) score += 1;
-    if (/[^A-Za-z0-9]/.test(value)) score += 1;
-    setStrength(score);
-  };
+  const setPasswordStrength = () => {};
 
   const validate = () => {
     const nextErrors = {};
-    if (!form.username.trim()) nextErrors.username = "Username is required";
+    if (!form.username.trim()) nextErrors.username = "Email is required";
     if (!form.password.trim()) nextErrors.password = "Password is required";
     else if (form.password.trim().length < 8)
       nextErrors.password = "Password must be at least 8 characters";
+    if (!captchaInput.trim()) nextErrors.captcha = "CAPTCHA is required";
+    else if (captchaInput.trim().toUpperCase() !== captcha)
+      nextErrors.captcha = "CAPTCHA does not match";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -54,6 +50,8 @@ const LoginPage = () => {
     event.preventDefault();
     if (!validate()) {
       toast.error("Please enter valid credentials");
+      setCaptcha(createCaptcha());
+      setCaptchaInput("");
       return;
     }
 
@@ -65,6 +63,8 @@ const LoginPage = () => {
       });
       dispatch({ type: "LOGIN_SUCCESS", payload: session.token });
       toast.success("Welcome back to PXE Box Management System");
+      setCaptcha(createCaptcha());
+      setCaptchaInput("");
       navigate("/dashboard");
       return;
     } catch {
@@ -91,9 +91,13 @@ const LoginPage = () => {
 
         dispatch({ type: "LOGIN_SUCCESS", payload: session.token });
         toast.success("Welcome back to PXE Box Management System");
+        setCaptcha(createCaptcha());
+        setCaptchaInput("");
         navigate("/dashboard");
       } catch (err) {
         toast.error(err.response?.data?.message || "Login failed");
+        setCaptcha(createCaptcha());
+        setCaptchaInput("");
       } finally {
         setLoading(false);
       }
@@ -151,7 +155,7 @@ const LoginPage = () => {
                 <span className="pxe-brand-heading__eyebrow">PXE</span>
                 <h1>Management System</h1>
               </div>
-              <p>Centralized. Automated. Scalable.</p>
+              {/* <p>Centralized. Automated. Scalable.</p> */}
             </div>
 
             <form
@@ -162,7 +166,7 @@ const LoginPage = () => {
             >
               <div className="mb-3">
                 <label htmlFor="username" className="form-label pxe-label">
-                  Username
+                  Email
                 </label>
                 <div
                   className={`input-group pxe-input ${errors.username ? "is-invalid" : ""}`}
@@ -175,7 +179,7 @@ const LoginPage = () => {
                     name="username"
                     type="text"
                     className="form-control"
-                    placeholder="Enter username"
+                    placeholder="Enter email"
                     value={form.username}
                     onChange={(e) => {
                       setForm((current) => ({
@@ -195,7 +199,7 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              <div className="mb-2">
+              <div className="mb-4">
                 <label htmlFor="password" className="form-label pxe-label">
                   Password
                 </label>
@@ -239,27 +243,54 @@ const LoginPage = () => {
                     </div>
                   )}
                 </div>
-                <div className="pxe-strength mt-2">
-                  <div className={`pxe-strength__bar strength-${strength}`} />
-                  <span>{strengthLabel}</span>
-                </div>
               </div>
 
-              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-4">
-                <label className="form-check pxe-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={form.rememberMe}
-                    onChange={(e) =>
-                      setForm((current) => ({
-                        ...current,
-                        rememberMe: e.target.checked,
-                      }))
-                    }
-                  />
-                  <span className="form-check-label">Remember Me</span>
+              <div className="mb-4">
+                <label htmlFor="captcha" className="form-label pxe-label">
+                  CAPTCHA
                 </label>
+                <div
+                  className={`pxe-captcha ${errors.captcha ? "is-invalid" : ""}`}
+                >
+                  <div
+                    className="pxe-captcha__challenge"
+                    aria-label={`CAPTCHA code ${captcha}`}
+                  >
+                    <span>{captcha}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn pxe-captcha__refresh"
+                    onClick={() => {
+                      setCaptcha(createCaptcha());
+                      setCaptchaInput("");
+                      setErrors((current) => ({ ...current, captcha: "" }));
+                    }}
+                    aria-label="Refresh CAPTCHA"
+                    title="Refresh CAPTCHA"
+                  >
+                    <FaRedoAlt />
+                  </button>
+                  <input
+                    id="captcha"
+                    name="captcha"
+                    type="text"
+                    className="form-control pxe-captcha__input"
+                    placeholder="Enter the code above"
+                    autoComplete="off"
+                    spellCheck="false"
+                    value={captchaInput}
+                    onChange={(e) => {
+                      setCaptchaInput(e.target.value);
+                      if (errors.captcha) {
+                        setErrors((current) => ({ ...current, captcha: "" }));
+                      }
+                    }}
+                    />
+                </div>
+                {errors.captcha && (
+                  <div className="invalid-feedback d-block">{errors.captcha}</div>
+                )}
               </div>
 
               <button
@@ -281,11 +312,11 @@ const LoginPage = () => {
               </button>
             </form>
 
-            <div className="pxe-footer mt-4 pt-3">
+            {/* <div className="pxe-footer mt-4 pt-3">
               <span>© 2026 PXE Box Management System</span>
               <span className="pxe-footer__dot" />
               <span>v2.0</span>
-            </div>
+            </div> */}
           </section>
         </div>
       </div>

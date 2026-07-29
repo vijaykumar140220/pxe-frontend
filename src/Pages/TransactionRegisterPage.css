@@ -170,6 +170,17 @@
   outline: none;
 }
 
+.transaction-page-size input {
+  height: 38px;
+  width: 96px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+}
+
 .transaction-table-card .table-responsive {
   overflow-x: auto;
 }
@@ -323,6 +334,11 @@
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .transaction-page-size select,
+  .transaction-page-size input {
+    flex: 1 1 110px;
   }
 }
 

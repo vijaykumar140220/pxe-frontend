@@ -164,6 +164,37 @@
   padding: 10px 8px;
 }
 
+.master-table th:nth-child(2),
+.master-table td:nth-child(2),
+.master-table th:nth-child(3),
+.master-table td:nth-child(3),
+.master-table th:nth-child(5),
+.master-table td:nth-child(5) {
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.master-table th:nth-child(2),
+.master-table th:nth-child(3),
+.master-table th:nth-child(5) {
+  width: 150px;
+}
+
+.master-table td:nth-child(2),
+.master-table td:nth-child(3),
+.master-table td:nth-child(5) {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.master-table th:nth-child(6),
+.master-table td:nth-child(6) {
+  white-space: nowrap;
+  word-break: normal;
+  font-size: 0.74rem;
+  padding-inline: 6px;
+}
+
 .master-table .sort-header {
   width: 100%;
   display: inline-flex;
@@ -229,6 +260,11 @@
 
 .vendor-column {
   white-space: normal;
+}
+
+.item-name-cell,
+.purchase-date-cell {
+  color: #334155;
 }
 
 .inventory-tooltip {
@@ -346,6 +382,16 @@
     word-break: normal;
     font-size: 0.75rem;
     padding: 9px 10px;
+  }
+
+  .master-table th:nth-child(2),
+  .master-table td:nth-child(2),
+  .master-table th:nth-child(3),
+  .master-table td:nth-child(3),
+  .master-table th:nth-child(5),
+  .master-table td:nth-child(5) {
+    width: auto;
+    font-size: 0.7rem;
   }
 
   .master-table .sort-header {
