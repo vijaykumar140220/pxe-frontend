@@ -424,7 +424,7 @@ const getBreakdownSerials = (analytics, groupKey, statusKey = "all") => {
     if (status === "TAMPERED" || status === "TEMPERED")
       return { key: "tampered", label: "Tampered", tone: "neutral" };
     if (loan || status === "LOAN" || status === "ON LOAN")
-      return { key: "onLoan", label: "On Loan", tone: "neutral" };
+      return { key: "onLoan", label: "Testing", tone: "blue" };
     return { key: "asset", label: "Asset", tone: "neutral" };
   };
 
@@ -548,17 +548,17 @@ const getOperationalSerials = (analytics, statusKey) => {
           : statusKey === "unserviceable"
             ? "UN-SERVICEABLE"
             : statusKey === "onLoan"
-              ? "ON LOAN"
+              ? "SERVICEABLE"
               : statusKey === "retired"
                 ? "TAMPERED"
-                : "POLICE CUSTODY",
+                : "NOT TRACED",
       tone:
         statusKey === "serviceable"
           ? "success"
           : statusKey === "unserviceable"
             ? "danger"
             : statusKey === "onLoan"
-              ? "blue"
+              ? "success"
               : "neutral",
     }))
     .filter((item) => item.serial && item.serial !== "N/A");

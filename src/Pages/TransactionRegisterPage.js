@@ -330,6 +330,14 @@ const TransactionRegisterPage = () => {
   const [savingRecord, setSavingRecord] = useState(false);
 
   const isAdmin = currentUser?.role?.toUpperCase() === "ADMIN";
+  const currentUserLabel =
+    currentUser?.name ||
+    currentUser?.fullName ||
+    currentUser?.username ||
+    localStorage.getItem("name") ||
+    localStorage.getItem("username") ||
+    currentUser?.email ||
+    "N/A";
 
   const fetchRecords = async () => {
     try {
@@ -535,7 +543,10 @@ const TransactionRegisterPage = () => {
 
     try {
       setLoading(true);
-      await axios.post(API_URL, form);
+      await axios.post(API_URL, {
+        ...form,
+        createdBy: currentUserLabel,
+      });
       toast.success("Transaction saved");
       setForm(initialForm);
       fetchRecords();
@@ -567,13 +578,18 @@ const TransactionRegisterPage = () => {
             Object.values(row).some((value) => displayValue(value).trim()),
           );
 
-        if (payload.length === 0) {
+        const payloadWithCreator = payload.map((row) => ({
+          ...row,
+          createdBy: currentUserLabel,
+        }));
+
+        if (payloadWithCreator.length === 0) {
           toast.error("No valid transaction rows found in Excel");
           return;
         }
 
-        await axios.post(`${API_URL}/bulk`, payload);
-        toast.success(`${payload.length} transaction records imported`);
+        await axios.post(`${API_URL}/bulk`, payloadWithCreator);
+        toast.success(`${payloadWithCreator.length} transaction records imported`);
         fetchRecords();
       } catch (error) {
         toast.error(

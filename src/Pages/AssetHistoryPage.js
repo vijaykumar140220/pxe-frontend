@@ -26,6 +26,15 @@ const normalizeSerial = (value) =>
 
 const displayValue = (value) => String(value || "").replace(/\u200B/g, "");
 
+const renderTruncatedCell = (value, className = "") => {
+  const text = displayValue(value) || "N/A";
+  return (
+    <span className={`asset-history-cell__text ${className}`.trim()} title={text}>
+      {text}
+    </span>
+  );
+};
+
 const asDate = (value) => {
   const date = new Date(displayValue(value));
   return Number.isNaN(date.getTime()) ? null : date;
@@ -78,6 +87,19 @@ const AssetHistoryPage = () => {
   const [savingRecord, setSavingRecord] = useState(false);
 
   const isAdmin = currentUser?.role?.toUpperCase() === "ADMIN";
+  const getCreatedByLabel = (record) =>
+    displayValue(
+      record?.createdBy ||
+        record?.createdBy?.name ||
+        record?.createdBy?.fullName ||
+        record?.createdBy?.username ||
+        record?.createdByName ||
+        record?.createdByUsername ||
+        record?.createdByUser ||
+        record?.enteredBy ||
+        record?.submittedBy ||
+        record?.author,
+    ) || "N/A";
 
   const chronologicalHistory = useMemo(() => {
     const serial = normalizeSerial(searchedSerial);
@@ -309,15 +331,24 @@ const AssetHistoryPage = () => {
                       sortKey={key}
                       sortConfig={sortConfig}
                       onSort={handleSort}
+                      className={
+                        key === "boxSerialNumber"
+                          ? "asset-history-box-serial-header"
+                          : ""
+                      }
                     />
                   ))}
+                  {isAdmin && <th>Created By</th>}
                   {isAdmin && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="12" className="asset-history-empty">
+                    <td
+                      colSpan={columns.length + 1 + (isAdmin ? 2 : 0)}
+                      className="asset-history-empty"
+                    >
                       Loading asset history...
                     </td>
                   </tr>
@@ -331,22 +362,25 @@ const AssetHistoryPage = () => {
                     >
                       <td>{index + 1}</td>
                       <td>{formatDate(record.date)}</td>
-                      <td>
-                        <strong>{displayValue(record.boxSerialNumber)}</strong>
+                      <td className="asset-history-box-serial-cell">
+                        <strong className="asset-history-box-serial">
+                          {displayValue(record.boxSerialNumber)}
+                        </strong>
                       </td>
-                      <td>{displayValue(record.transactionType) || "N/A"}</td>
-                      <td>{displayValue(record.fromName) || "N/A"}</td>
-                      <td>{displayValue(record.fromOffice) || "N/A"}</td>
-                      <td>{displayValue(record.fromLocation) || "N/A"}</td>
-                      <td>{displayValue(record.toName) || "N/A"}</td>
-                      <td>{displayValue(record.toOffice) || "N/A"}</td>
-                      <td>{displayValue(record.toLocation) || "N/A"}</td>
+                      <td>{renderTruncatedCell(record.transactionType)}</td>
+                      <td>{renderTruncatedCell(record.fromName)}</td>
+                      <td>{renderTruncatedCell(record.fromOffice)}</td>
+                      <td>{renderTruncatedCell(record.fromLocation)}</td>
+                      <td>{renderTruncatedCell(record.toName)}</td>
+                      <td>{renderTruncatedCell(record.toOffice)}</td>
+                      <td>{renderTruncatedCell(record.toLocation)}</td>
                       <td>
                         <span className="asset-history-status">
                           {displayValue(record.boxStatus) || "N/A"}
                         </span>
                       </td>
-                      <td>{displayValue(record.remarks) || "N/A"}</td>
+                      <td>{renderTruncatedCell(record.remarks)}</td>
+                      {isAdmin && <td>{renderTruncatedCell(getCreatedByLabel(record))}</td>}
                       {isAdmin && (
                         <td>
                           <div className="d-flex gap-2">
@@ -375,13 +409,19 @@ const AssetHistoryPage = () => {
                   ))
                 ) : searchedSerial ? (
                   <tr>
-                    <td colSpan="12" className="asset-history-empty">
+                    <td
+                      colSpan={columns.length + 1 + (isAdmin ? 2 : 0)}
+                      className="asset-history-empty"
+                    >
                       No transaction history found for {searchedSerial}.
                     </td>
                   </tr>
                 ) : (
                   <tr>
-                    <td colSpan="12" className="asset-history-empty">
+                    <td
+                      colSpan={columns.length + 1 + (isAdmin ? 2 : 0)}
+                      className="asset-history-empty"
+                    >
                       Search a box serial number to view complete transaction
                       history.
                     </td>

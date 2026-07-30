@@ -85,6 +85,7 @@ export const AuthProvider = ({ children }) => {
   const persistSession = useCallback((user) => {
     const session = {
       id: user.id || user._id,
+      name: user.name || user.fullName || user.username || user.email,
       username: user.username || user.fullName || user.email,
       fullName: user.fullName || user.username || user.email,
       email: user.email,
@@ -98,6 +99,7 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     localStorage.setItem("token", session.token);
+    localStorage.setItem("name", session.name);
     localStorage.setItem("username", session.username);
     localStorage.setItem("role", session.role);
     localStorage.setItem("loginTimestamp", Date.now().toString());
@@ -134,6 +136,7 @@ export const AuthProvider = ({ children }) => {
         id,
         email,
         token,
+        name: username || email.split("@")[0],
         username: username || email.split("@")[0],
         fullName: username || email.split("@")[0],
         role,
@@ -162,6 +165,7 @@ export const AuthProvider = ({ children }) => {
     const newUser = {
       id: Date.now(),
       fullName: account.fullName,
+      name: account.fullName,
       username: account.fullName,
       employeeId: account.employeeId,
       email: account.email,

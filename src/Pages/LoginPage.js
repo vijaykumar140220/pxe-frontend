@@ -164,7 +164,7 @@ const LoginPage = () => {
               noValidate
               id="login-form"
             >
-              <div className="mb-3">
+              <div className="pxe-form-group">
                 <label htmlFor="username" className="form-label pxe-label">
                   Email
                 </label>
@@ -191,15 +191,15 @@ const LoginPage = () => {
                       }
                     }}
                   />
-                  {errors.username && (
-                    <div className="invalid-feedback d-block">
-                      {errors.username}
-                    </div>
-                  )}
                 </div>
+                {errors.username && (
+                  <div className="invalid-feedback d-block pxe-field-error">
+                    {errors.username}
+                  </div>
+                )}
               </div>
 
-              <div className="mb-4">
+              <div className="pxe-form-group">
                 <label htmlFor="password" className="form-label pxe-label">
                   Password
                 </label>
@@ -237,15 +237,15 @@ const LoginPage = () => {
                       className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`}
                     />
                   </button>
-                  {errors.password && (
-                    <div className="invalid-feedback d-block">
-                      {errors.password}
-                    </div>
-                  )}
                 </div>
+                {errors.password && (
+                  <div className="invalid-feedback d-block pxe-field-error">
+                    {errors.password}
+                  </div>
+                )}
               </div>
 
-              <div className="mb-4">
+              <div className="pxe-form-group pxe-form-group--captcha">
                 <label htmlFor="captcha" className="form-label pxe-label">
                   CAPTCHA
                 </label>
@@ -289,15 +289,13 @@ const LoginPage = () => {
                     />
                 </div>
                 {errors.captcha && (
-                  <div className="invalid-feedback d-block">{errors.captcha}</div>
+                  <div className="invalid-feedback d-block pxe-field-error">
+                    {errors.captcha}
+                  </div>
                 )}
               </div>
 
-              <button
-                type="submit"
-                className="btn pxe-login-btn w-100"
-                disabled={loading}
-              >
+              <button type="submit" className="btn pxe-login-btn" disabled={loading}>
                 {loading ? (
                   <>
                     <FaSpinner className="pxe-spin" />

@@ -138,7 +138,8 @@
 
 .asset-history-table {
   width: 100%;
-  min-width: 1580px;
+  min-width: 1680px;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -152,7 +153,9 @@
   line-height: 1.45;
   text-align: center;
   vertical-align: middle;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .asset-history-table th {
@@ -178,8 +181,76 @@
 }
 
 .asset-history-table td strong {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #1d4ed8;
   font-weight: 900;
+}
+
+.asset-history-box-serial-cell {
+  width: 240px;
+  min-width: 240px;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.asset-history-box-serial {
+  color: #000000 !important;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+  display: inline-block;
+  max-width: none;
+  min-width: max-content;
+  white-space: nowrap;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.asset-history-box-serial-cell,
+.asset-history-box-serial {
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.asset-history-box-serial-header {
+  width: 240px;
+  min-width: 240px;
+}
+
+.asset-history-box-serial-header .sort-header {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.asset-history-box-serial:hover {
+  color: #000000;
+}
+
+.asset-history-cell__text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-history-table .sort-header {
+  justify-content: center;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asset-history-table .sort-header span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-history-status {

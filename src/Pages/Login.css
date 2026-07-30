@@ -220,21 +220,22 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 18px 28px 22px;
+  padding: 14px 24px 16px;
   background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 .pxe-brand-block {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .pxe-brand-logo {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .pxe-brand-heading {
@@ -263,7 +264,7 @@ body {
 .pxe-brand-heading h1 {
   margin: 0;
   color: #0f172a;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1.08;
   letter-spacing: -0.03em;
@@ -278,7 +279,10 @@ body {
 
 .pxe-form {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .pxe-label {
@@ -286,6 +290,17 @@ body {
   color: #0f172a;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.pxe-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pxe-form-group--captcha {
+  gap: 6px;
+  margin-bottom: 0;
 }
 
 .pxe-input {
@@ -310,8 +325,8 @@ body {
 }
 
 .pxe-input .form-control {
-  min-height: 42px;
-  padding-inline: 14px;
+  min-height: 38px;
+  padding-inline: 12px;
   box-shadow: none;
 }
 
@@ -322,7 +337,7 @@ body {
 }
 
 .pxe-password-toggle {
-  width: 52px;
+  width: 46px;
   color: #475569;
 }
 
@@ -334,13 +349,19 @@ body {
   box-shadow: 0 0 0 4px rgba(255, 77, 77, 0.14);
 }
 
+.pxe-field-error {
+  min-height: 18px;
+  margin-top: 0;
+  padding-left: 2px;
+}
+
 .pxe-captcha {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 50px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 6px;
   align-items: stretch;
-  padding: 10px;
-  border-radius: 16px;
+  padding: 8px;
+  border-radius: 14px;
   border: 1px solid rgba(15, 23, 42, 0.1);
   background:
     radial-gradient(circle at 15% 20%, rgba(47, 128, 237, 0.14), transparent 28%),
@@ -353,9 +374,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 12px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 11px;
   border: 1px dashed rgba(47, 128, 237, 0.28);
   color: var(--login-primary);
   background:
@@ -367,8 +388,8 @@ body {
       rgba(255, 255, 255, 0) 16px
     ),
     rgba(240, 247, 255, 0.92);
-  letter-spacing: 0.3em;
-  font-size: 1rem;
+  letter-spacing: 0.26em;
+  font-size: 0.9rem;
   font-weight: 800;
   user-select: none;
 }
@@ -380,7 +401,7 @@ body {
 
 .pxe-captcha__refresh {
   grid-column: 2 / 3;
-  width: 42px;
+  width: 38px;
   height: 100%;
   border: 1px solid rgba(47, 128, 237, 0.16);
   border-radius: 12px;
@@ -396,9 +417,9 @@ body {
 
 .pxe-captcha__input {
   grid-column: 1 / -1;
-  min-height: 40px;
+  min-height: 36px;
   border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 12px;
+  border-radius: 11px;
   box-shadow: none;
 }
 
@@ -411,7 +432,9 @@ body {
 }
 
 .pxe-login-btn {
-  height: 42px;
+  height: 40px;
+  width: 100%;
+  align-self: stretch;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -438,6 +461,14 @@ body {
 .pxe-login-btn:disabled {
   cursor: wait;
   opacity: 0.85;
+}
+
+.pxe-form .pxe-login-btn {
+  margin-top: 16px;
+}
+
+.pxe-form-group--captcha .pxe-field-error {
+  margin-top: 0;
 }
 
 .pxe-footer {
@@ -510,11 +541,11 @@ body {
   }
 
   .pxe-login-card__panel {
-    padding: 18px 20px;
+    padding: 12px 18px 14px;
   }
 
   .pxe-brand-block h1 {
-    font-size: 22px;
+    font-size: 20px;
   }
 }
 
@@ -541,9 +572,12 @@ body {
   }
 
   .pxe-login-card__panel {
-    padding: 18px 16px 20px;
+    padding: 12px 14px 14px;
   }
 
+  .pxe-form {
+    gap: 8px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -572,7 +606,7 @@ body {
   }
 
   .pxe-brand-block h1 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .pxe-captcha {
