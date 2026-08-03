@@ -15,7 +15,7 @@ import {
   PointElement,
   Tooltip,
 } from "chart.js";
-import { Bar, Doughnut, Line, Pie } from "react-chartjs-2";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
 import {
   FiActivity,
   FiAlertTriangle,
@@ -102,6 +102,30 @@ const formatDate = (value) => {
 };
 const compactNumber = (value) => Number(value || 0).toLocaleString("en-IN");
 
+const MAP_HOTSPOTS = {
+  MUMBAI: { top: "55%", left: "29%" },
+  PUNE: { top: "58%", left: "27%" },
+  NEWDELHI: { top: "22%", left: "44%" },
+  DELHI: { top: "22%", left: "44%" },
+  NOIDA: { top: "24%", left: "46%" },
+  BENGALURU: { top: "73%", left: "41%" },
+  CHENNAI: { top: "79%", left: "52%" },
+  HYDERABAD: { top: "67%", left: "47%" },
+  KOLKATA: { top: "48%", left: "67%" },
+  AHMEDABAD: { top: "39%", left: "31%" },
+  JAIPUR: { top: "32%", left: "38%" },
+  LUCKNOW: { top: "29%", left: "52%" },
+  BHOPAL: { top: "47%", left: "42%" },
+  THIRUVANANTHAPURAM: { top: "90%", left: "42%" },
+  KOZHIKODE: { top: "82%", left: "37%" },
+  KANNUR: { top: "79%", left: "35%" },
+  COIMBATORE: { top: "80%", left: "43%" },
+  MADURAI: { top: "86%", left: "47%" },
+  VADODARA: { top: "42%", left: "34%" },
+  SURAT: { top: "48%", left: "31%" },
+  NAGPUR: { top: "53%", left: "47%" },
+};
+
 const locationTotalLabelPlugin = {
   id: "locationTotalLabelPlugin",
   afterDatasetsDraw(chart) {
@@ -112,7 +136,6 @@ const locationTotalLabelPlugin = {
     } = chart;
 
     ctx.save();
-    ctx.fillStyle = "#0f172a";
     ctx.font = "700 11px Inter, system-ui, sans-serif";
     ctx.textBaseline = "middle";
 
@@ -127,7 +150,44 @@ const locationTotalLabelPlugin = {
 
       const xPos = Math.min(x.right - 6, bar.x + 22);
       const yPos = y.getPixelForValue(index);
+      ctx.fillStyle = "#0f172a";
       ctx.fillText(compactNumber(datasetTotal), xPos, yPos);
+    });
+
+    ctx.restore();
+  },
+};
+
+const locationSegmentLabelPlugin = {
+  id: "locationSegmentLabelPlugin",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+
+    ctx.save();
+    ctx.font = "700 11px Inter, system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      const textStyle = datasetIndex === 0 ? "#ffffff" : "#ffffff";
+
+      meta.data.forEach((bar, index) => {
+        const value = Number(dataset.data?.[index] || 0);
+        if (!value || !bar) return;
+
+        const width = Math.abs(bar.x - bar.base);
+        const label = compactNumber(value);
+        const labelWidth = ctx.measureText(label).width;
+        const insideBar = width >= labelWidth + 12;
+        const xPos = insideBar
+          ? (bar.x + bar.base) / 2
+          : Math.max(bar.x, bar.base) + 10;
+        const yPos = bar.y;
+
+        ctx.fillStyle = insideBar ? textStyle : "#0f172a";
+        ctx.textAlign = insideBar ? "center" : "left";
+        ctx.fillText(label, xPos, yPos);
+      });
     });
 
     ctx.restore();
@@ -672,6 +732,7 @@ const DashboardPage = () => {
     useState("all");
   const [selectedOperational, setSelectedOperational] = useState(null);
   const [selectedIntelligence, setSelectedIntelligence] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   const fetchDashboard = useCallback(async (notify = false) => {
     try {
@@ -1182,8 +1243,41 @@ const DashboardPage = () => {
     inventory,
     selectedIntelligence,
   ]);
+  const selectedLocationData = useMemo(() => {
+    if (!selectedLocation) return null;
+
+    const target = normalize(selectedLocation);
+    const serials = analytics.latest
+      .filter((record) => {
+        const office = normalize(record.toOffice || "");
+        const location = normalize(record.toLocation || "");
+        return (
+          office === target ||
+          location === target ||
+          office.includes(target) ||
+          location.includes(target)
+        );
+      })
+      .map((record) => ({
+        serial: record.serialNumber || record.boxSerialNumber,
+        label: record.boxStatus || "ASSET",
+        tone: "blue",
+      }))
+      .filter((item) => item.serial);
+
+    return {
+      label: selectedLocation,
+      title: selectedLocation,
+      value: serials.length,
+      serials,
+      emptyMessage: "No serial numbers found for this location.",
+    };
+  }, [analytics.latest, selectedLocation]);
   const activeModalData =
-    selectedBreakdownData || selectedOperationalData || selectedIntelligenceData;
+    selectedBreakdownData ||
+    selectedOperationalData ||
+    selectedIntelligenceData ||
+    selectedLocationData;
   const pageSize = 8;
   const totalPages = Math.max(
     1,
@@ -1455,7 +1549,7 @@ const DashboardPage = () => {
               >
                 <Bar
                   data={locationData}
-                  plugins={[locationTotalLabelPlugin]}
+                  plugins={[locationSegmentLabelPlugin, locationTotalLabelPlugin]}
                   options={{
                     ...baseChartOptions,
                     indexAxis: "y",
@@ -1520,23 +1614,40 @@ const DashboardPage = () => {
                 <Line data={activityData} options={baseChartOptions} />
               </ChartPanel>
               <ChartPanel
-                title="Asset Allocation by Department"
-                subtitle="Operational allocation derived from current custodian"
+                title="Google India Map"
+                subtitle="Enterprise location view across India"
               >
-                <Pie
-                  data={departmentData}
-                  options={{
-                    ...baseChartOptions,
-                    scales: undefined,
-                    plugins: {
-                      ...baseChartOptions.plugins,
-                      legend: {
-                        position: "right",
-                        labels: baseChartOptions.plugins.legend.labels,
-                      },
-                    },
-                  }}
-                />
+                <div className="google-map-panel" aria-label="Google map of India">
+                  <iframe
+                    title="Google Map of India"
+                    src="https://www.google.com/maps?q=India&z=4&hl=en&output=embed&iwloc=0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    tabIndex={-1}
+                  />
+                  <div className="google-map-hotspots" aria-hidden="false">
+                    {Object.entries(MAP_HOTSPOTS).map(([name, hotspot]) => {
+                      const displayName =
+                        name === "NEWDELHI" ? "NEW DELHI" : name;
+                      const isActive = analytics.locations.some(
+                        ([locationName]) =>
+                          normalize(locationName) === normalize(displayName),
+                      );
+
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          className={`google-map-hotspot ${isActive ? "is-active" : "is-muted"}`}
+                          style={hotspot}
+                          title={displayName}
+                          aria-label={`Show serial numbers for ${displayName}`}
+                          onClick={() => setSelectedLocation(displayName)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               </ChartPanel>
             </section>
 
@@ -1570,7 +1681,12 @@ const DashboardPage = () => {
                   <span>Status</span>
                 </div>
                 {analytics.locations.map(([name, value]) => (
-                  <div className="location-row" key={name}>
+                  <button
+                    type="button"
+                    className="location-row"
+                    key={name}
+                    onClick={() => setSelectedLocation(name)}
+                  >
                     <strong>{name}</strong>
                     <span>{compactNumber(value.total)}</span>
                     <span>{compactNumber(getLocationBoxCounts(name).black)}</span>
@@ -1586,7 +1702,7 @@ const DashboardPage = () => {
                         ? "Attention"
                         : "Operational"}
                     </em>
-                  </div>
+                  </button>
                 ))}
               </div>
             </section>
@@ -1840,6 +1956,7 @@ const DashboardPage = () => {
             setSelectedBreakdownStatus("all");
             setSelectedOperational(null);
             setSelectedIntelligence(null);
+            setSelectedLocation(null);
           }}
         >
             <div
@@ -1890,6 +2007,7 @@ const DashboardPage = () => {
                     setSelectedBreakdownStatus("all");
                     setSelectedOperational(null);
                     setSelectedIntelligence(null);
+                    setSelectedLocation(null);
                   }}
                   aria-label="Close popup"
                 >

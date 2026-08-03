@@ -18,10 +18,7 @@ const createCaptcha = () =>
   ).join("");
 
 const LoginPage = () => {
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ username: "", password: "" });
   const [captcha, setCaptcha] = useState(() => createCaptcha());
   const [captchaInput, setCaptchaInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -107,175 +104,105 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="pxe-login-page is-dark">
-      <div className="pxe-login-glow pxe-login-glow--one" aria-hidden="true" />
-      <div className="pxe-login-glow pxe-login-glow--two" aria-hidden="true" />
-      <div
-        className="pxe-login-glow pxe-login-glow--three"
-        aria-hidden="true"
-      />
-
-      <nav className="pxe-login-navbar" aria-label="Primary">
-        <div className="pxe-login-navbar__brand">
-          <img
-            src="/logo.png"
-            alt="PXE logo"
-            className="pxe-login-navbar__logo"
-          />
-          <div>
-            <strong>PXE BOX</strong>
-            <span>Management System</span>
+    <main
+      className="pxe-hero-page"
+      style={{ backgroundImage: "url('/login.jpeg')" }}
+    >
+      <div className="pxe-hero-page__overlay" aria-hidden="true" />
+      <div className="pxe-hero-page__content">
+        <section className="pxe-login-panel" aria-label="Login form">
+          <div className="pxe-login-panel__shine" aria-hidden="true" />
+          <div className="pxe-brand-block">
+            <span className="pxe-brand-heading__eyebrow">PXE</span>
+            <h1 className="pxe-brand-heading__title">PXE Management System</h1>
+            <p className="pxe-brand-heading__subtitle">Secure Enterprise Login</p>
           </div>
-        </div>
-      </nav>
 
-      <div className="container-fluid pxe-login-shell">
-        <div className="pxe-login-card">
-          <aside className="pxe-login-card__visual">
-            <img
-              src="/login.jpeg"
-              alt="PXE deployment environment"
-              className="pxe-login-card__image"
-            />
-            <div className="pxe-login-card__overlay" />
-            <div className="pxe-login-card__visual-copy">
-              <p>PXE Deployment</p>
-              <h2>Enterprise control for box operations</h2>
-              <span>
-                Centralized deployment, inventory, boot workflows, and server
-                health visibility in one secure workspace.
-              </span>
-            </div>
-          </aside>
-
-          <section className="pxe-login-card__panel">
-            <div className="pxe-brand-block text-center">
-              <img src="/logo.png" alt="PXE logo" className="pxe-brand-logo" />
-              <div className="pxe-brand-heading">
-                <span className="pxe-brand-heading__eyebrow">PXE</span>
-                <h1>Management System</h1>
-              </div>
-              {/* <p>Centralized. Automated. Scalable.</p> */}
-            </div>
-
-            <form
-              className="pxe-form"
-              onSubmit={handleSubmit}
-              noValidate
-              id="login-form"
-            >
-              <div className="pxe-form-group">
-                <label htmlFor="username" className="form-label pxe-label">
-                  Email
-                </label>
-                <div
-                  className={`input-group pxe-input ${errors.username ? "is-invalid" : ""}`}
-                >
-                  <span className="input-group-text">
-                    <i className="bi bi-person" />
-                  </span>
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter email"
-                    value={form.username}
-                    onChange={(e) => {
-                      setForm((current) => ({
-                        ...current,
-                        username: e.target.value,
-                      }));
-                      if (errors.username) {
-                        setErrors((current) => ({ ...current, username: "" }));
-                      }
-                    }}
-                  />
-                </div>
-                {errors.username && (
-                  <div className="invalid-feedback d-block pxe-field-error">
-                    {errors.username}
-                  </div>
-                )}
-              </div>
-
-              <div className="pxe-form-group">
-                <label htmlFor="password" className="form-label pxe-label">
-                  Password
-                </label>
-                <div
-                  className={`input-group pxe-input ${errors.password ? "is-invalid" : ""}`}
-                >
-                  <span className="input-group-text">
-                    <i className="bi bi-lock" />
-                  </span>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    className="form-control"
-                    placeholder="Enter password"
-                    value={form.password}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setForm((current) => ({ ...current, password: value }));
-                      setPasswordStrength(value);
-                      if (errors.password) {
-                        setErrors((current) => ({ ...current, password: "" }));
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn pxe-password-toggle"
-                    onClick={() => setShowPassword((current) => !current)}
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
+          <form className="pxe-form" onSubmit={handleSubmit} noValidate id="login-form">
+            <div className="pxe-form-group">
+              <label htmlFor="username" className="form-label pxe-label">
+                Email
+              </label>
+              <div className={`pxe-input ${errors.username ? "is-invalid" : ""}`}>
+                <span className="pxe-input__icon" aria-hidden="true">
+                  <i className="bi bi-person" />
+                </span>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  className="pxe-input__field"
+                  placeholder="Enter email"
+                  value={form.username}
+                  onChange={(e) => {
+                    setForm((current) => ({ ...current, username: e.target.value }));
+                    if (errors.username) {
+                      setErrors((current) => ({ ...current, username: "" }));
                     }
-                  >
-                    <i
-                      className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`}
-                    />
-                  </button>
-                </div>
-                {errors.password && (
-                  <div className="invalid-feedback d-block pxe-field-error">
-                    {errors.password}
-                  </div>
-                )}
+                  }}
+                />
               </div>
+              {errors.username && (
+                <div className="invalid-feedback d-block pxe-field-error">
+                  {errors.username}
+                </div>
+              )}
+            </div>
 
-              <div className="pxe-form-group pxe-form-group--captcha">
-                <label htmlFor="captcha" className="form-label pxe-label">
-                  CAPTCHA
-                </label>
-                <div
-                  className={`pxe-captcha ${errors.captcha ? "is-invalid" : ""}`}
+            <div className="pxe-form-group">
+              <label htmlFor="password" className="form-label pxe-label">
+                Password
+              </label>
+              <div className={`pxe-input pxe-input--password ${errors.password ? "is-invalid" : ""}`}>
+                <span className="pxe-input__icon" aria-hidden="true">
+                  <i className="bi bi-lock" />
+                </span>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  className="pxe-input__field"
+                  placeholder="Enter password"
+                  value={form.password}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setForm((current) => ({ ...current, password: value }));
+                    setPasswordStrength(value);
+                    if (errors.password) {
+                      setErrors((current) => ({ ...current, password: "" }));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn pxe-password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  <div
-                    className="pxe-captcha__challenge"
-                    aria-label={`CAPTCHA code ${captcha}`}
-                  >
+                  <i className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`} />
+                </button>
+              </div>
+              {errors.password && (
+                <div className="invalid-feedback d-block pxe-field-error">
+                  {errors.password}
+                </div>
+              )}
+            </div>
+
+            <div className="pxe-form-group pxe-form-group--captcha">
+              <label htmlFor="captcha" className="form-label pxe-label">
+                CAPTCHA
+              </label>
+              <div className={`pxe-captcha ${errors.captcha ? "is-invalid" : ""}`}>
+                <div className="pxe-captcha__field">
+                  <div className="pxe-captcha__challenge" aria-label={`CAPTCHA code ${captcha}`}>
                     <span>{captcha}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="btn pxe-captcha__refresh"
-                    onClick={() => {
-                      setCaptcha(createCaptcha());
-                      setCaptchaInput("");
-                      setErrors((current) => ({ ...current, captcha: "" }));
-                    }}
-                    aria-label="Refresh CAPTCHA"
-                    title="Refresh CAPTCHA"
-                  >
-                    <FaRedoAlt />
-                  </button>
                   <input
                     id="captcha"
                     name="captcha"
                     type="text"
-                    className="form-control pxe-captcha__input"
+                    className="pxe-captcha__input"
                     placeholder="Enter the code above"
                     autoComplete="off"
                     spellCheck="false"
@@ -286,39 +213,46 @@ const LoginPage = () => {
                         setErrors((current) => ({ ...current, captcha: "" }));
                       }
                     }}
-                    />
+                  />
                 </div>
-                {errors.captcha && (
-                  <div className="invalid-feedback d-block pxe-field-error">
-                    {errors.captcha}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  className="btn pxe-captcha__refresh"
+                  onClick={() => {
+                    setCaptcha(createCaptcha());
+                    setCaptchaInput("");
+                    setErrors((current) => ({ ...current, captcha: "" }));
+                  }}
+                  aria-label="Refresh CAPTCHA"
+                  title="Refresh CAPTCHA"
+                >
+                  <FaRedoAlt />
+                </button>
               </div>
+              {errors.captcha && (
+                <div className="invalid-feedback d-block pxe-field-error">
+                  {errors.captcha}
+                </div>
+              )}
+            </div>
 
-              <button type="submit" className="btn pxe-login-btn" disabled={loading}>
-                {loading ? (
-                  <>
-                    <FaSpinner className="pxe-spin" />
-                    Signing In...
-                  </>
-                ) : (
-                  <>
-                    <FaShieldAlt />
-                    Login
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* <div className="pxe-footer mt-4 pt-3">
-              <span>© 2026 PXE Box Management System</span>
-              <span className="pxe-footer__dot" />
-              <span>v2.0</span>
-            </div> */}
-          </section>
-        </div>
+            <button type="submit" className="btn pxe-login-btn" disabled={loading}>
+              {loading ? (
+                <>
+                  <FaSpinner className="pxe-spin" />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  <FaShieldAlt />
+                  Login
+                </>
+              )}
+            </button>
+          </form>
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
 

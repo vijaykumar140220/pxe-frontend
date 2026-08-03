@@ -99,6 +99,36 @@ const formatDisplayDate = (value) => {
   return `${day}-${month}-${year}`;
 };
 
+const parseWarrantyYears = (value) => {
+  const match = String(value || "").match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : null;
+};
+
+const getDaysLeftFromWarranty = (purchaseDate, warranty) => {
+  const years = parseWarrantyYears(warranty);
+  if (!purchaseDate || !Number.isFinite(years)) return "";
+
+  const startDate = new Date(purchaseDate);
+  if (Number.isNaN(startDate.getTime())) return "";
+
+  const expiryDate = new Date(startDate);
+  expiryDate.setFullYear(expiryDate.getFullYear() + years);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const now = new Date();
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfExpiry = new Date(
+    expiryDate.getFullYear(),
+    expiryDate.getMonth(),
+    expiryDate.getDate(),
+  );
+
+  const daysLeft = Math.ceil((startOfExpiry - startOfToday) / dayMs);
+
+  if (daysLeft < 0) return "Expired";
+  return `${daysLeft} days left`;
+};
+
 const normalizeExcelRow = (row) => ({
   serialNumber: String(
     getCellValue(row, [
@@ -629,7 +659,12 @@ const InventoryMasterPage = () => {
                       <td className="purchase-date-cell">{formatDisplayDate(record.purchaseDate)}</td>
                       <td>{record.purchasePrice}</td>
                       <td className="vendor-column">{renderHoverContent(record.vendor)}</td>
-                      <td>{record.warranty}</td>
+                      <td
+                        title={record.warranty ? `Warranty: ${record.warranty}` : undefined}
+                      >
+                        {getDaysLeftFromWarranty(record.purchaseDate, record.warranty) ||
+                          record.warranty}
+                      </td>
                       <td>
                         <div className="master-actions">
                           <button

@@ -1,6 +1,7 @@
 .transaction-register-page {
   width: 100%;
   overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .transaction-register-page .enterprise-container {
@@ -19,7 +20,7 @@
 .transaction-form {
   margin-bottom: 20px;
   padding: 22px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .location-add-row {
@@ -111,7 +112,7 @@
 }
 
 .transaction-table-card {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .transaction-table-toolbar {
@@ -186,7 +187,7 @@
 }
 
 .transaction-table {
-  min-width: 1850px;
+  min-width: 1700px;
 }
 
 .transaction-table th,
@@ -198,12 +199,30 @@
 
 .transaction-table th.remarks-column,
 .transaction-table td.remarks-column {
-  min-width: 220px;
-  max-width: 320px;
+  min-width: 180px;
+  max-width: 240px;
   text-align: center;
   white-space: normal;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.transaction-table th.created-by-column,
+.transaction-table td.created-by-column {
+  min-width: 130px;
+  max-width: 150px;
+  white-space: nowrap;
+  font-size: 0.84rem;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.created-by-value {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transaction-table td.remarks-column {

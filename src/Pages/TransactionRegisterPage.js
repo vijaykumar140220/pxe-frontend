@@ -381,7 +381,7 @@ const TransactionRegisterPage = () => {
         : sortedRecords.slice(pageStartIndex, pageStartIndex + recordsPerPage),
     [sortedRecords, recordRange, rangeStartIndex, rangeEndIndex, pageStartIndex, recordsPerPage],
   );
-  const tableColSpan = columns.length + 1 + (isAdmin ? 1 : 0);
+  const tableColSpan = columns.length + 2 + (isAdmin ? 1 : 0);
 
   const openEditDialog = (record) => {
     setEditingRecord(record);
@@ -884,6 +884,7 @@ const TransactionRegisterPage = () => {
                       }
                     />
                   ))}
+                  <th className="created-by-column">Created By</th>
                   {isAdmin && <th className="actions-column">Actions</th>}
                 </tr>
               </thead>
@@ -922,6 +923,16 @@ const TransactionRegisterPage = () => {
                       </td>
                       <td className="remarks-column">
                         {renderHoverContent(record.remarks)}
+                      </td>
+                      <td className="created-by-column">
+                        <span
+                          className="created-by-value"
+                          title={displayValue(
+                            record.createdBy || currentUserLabel,
+                          )}
+                        >
+                          {displayValue(record.createdBy || currentUserLabel)}
+                        </span>
                       </td>
                       {isAdmin && (
                         <td className="actions-column">
