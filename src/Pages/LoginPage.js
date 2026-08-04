@@ -13,8 +13,9 @@ const CAPTCHA_LENGTH = 5;
 const CAPTCHA_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 const createCaptcha = () =>
-  Array.from({ length: CAPTCHA_LENGTH }, () =>
-    CAPTCHA_CHARSET[Math.floor(Math.random() * CAPTCHA_CHARSET.length)],
+  Array.from(
+    { length: CAPTCHA_LENGTH },
+    () => CAPTCHA_CHARSET[Math.floor(Math.random() * CAPTCHA_CHARSET.length)],
   ).join("");
 
 const LoginPage = () => {
@@ -115,15 +116,24 @@ const LoginPage = () => {
           <div className="pxe-brand-block">
             <span className="pxe-brand-heading__eyebrow">PXE</span>
             <h1 className="pxe-brand-heading__title">PXE Management System</h1>
-            <p className="pxe-brand-heading__subtitle">Secure Enterprise Login</p>
+            <p className="pxe-brand-heading__subtitle">
+              Secure Enterprise Login
+            </p>
           </div>
 
-          <form className="pxe-form" onSubmit={handleSubmit} noValidate id="login-form">
+          <form
+            className="pxe-form"
+            onSubmit={handleSubmit}
+            noValidate
+            id="login-form"
+          >
             <div className="pxe-form-group">
               <label htmlFor="username" className="form-label pxe-label">
                 Email
               </label>
-              <div className={`pxe-input ${errors.username ? "is-invalid" : ""}`}>
+              <div
+                className={`pxe-input ${errors.username ? "is-invalid" : ""}`}
+              >
                 <span className="pxe-input__icon" aria-hidden="true">
                   <i className="bi bi-person" />
                 </span>
@@ -135,7 +145,10 @@ const LoginPage = () => {
                   placeholder="Enter email"
                   value={form.username}
                   onChange={(e) => {
-                    setForm((current) => ({ ...current, username: e.target.value }));
+                    setForm((current) => ({
+                      ...current,
+                      username: e.target.value,
+                    }));
                     if (errors.username) {
                       setErrors((current) => ({ ...current, username: "" }));
                     }
@@ -153,7 +166,9 @@ const LoginPage = () => {
               <label htmlFor="password" className="form-label pxe-label">
                 Password
               </label>
-              <div className={`pxe-input pxe-input--password ${errors.password ? "is-invalid" : ""}`}>
+              <div
+                className={`pxe-input pxe-input--password ${errors.password ? "is-invalid" : ""}`}
+              >
                 <span className="pxe-input__icon" aria-hidden="true">
                   <i className="bi bi-lock" />
                 </span>
@@ -179,7 +194,9 @@ const LoginPage = () => {
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  <i className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`} />
+                  <i
+                    className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`}
+                  />
                 </button>
               </div>
               {errors.password && (
@@ -193,9 +210,14 @@ const LoginPage = () => {
               <label htmlFor="captcha" className="form-label pxe-label">
                 CAPTCHA
               </label>
-              <div className={`pxe-captcha ${errors.captcha ? "is-invalid" : ""}`}>
+              <div
+                className={`pxe-captcha ${errors.captcha ? "is-invalid" : ""}`}
+              >
                 <div className="pxe-captcha__field">
-                  <div className="pxe-captcha__challenge" aria-label={`CAPTCHA code ${captcha}`}>
+                  <div
+                    className="pxe-captcha__challenge"
+                    aria-label={`CAPTCHA code ${captcha}`}
+                  >
                     <span>{captcha}</span>
                   </div>
                   <input
@@ -236,7 +258,11 @@ const LoginPage = () => {
               )}
             </div>
 
-            <button type="submit" className="btn pxe-login-btn" disabled={loading}>
+            <button
+              type="submit"
+              className="btn pxe-login-btn"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <FaSpinner className="pxe-spin" />

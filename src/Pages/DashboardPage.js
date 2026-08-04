@@ -855,6 +855,7 @@ const DashboardPage = () => {
       value: analytics.aheesa,
       color: "#7c3aed",
       bg: "#ede9fe",
+      details: [["Un-Serviceable", analytics.aheesa]],
     },
     {
       key: "notTraced",
@@ -863,6 +864,7 @@ const DashboardPage = () => {
       value: analytics.notTraced,
       color: "#8b5cf6",
       bg: "#f3e8ff",
+      details: [["Not Traced", analytics.notTraced]],
     },
   ];
 

@@ -34,7 +34,7 @@ const columns = [
   { key: "purchaseDate", label: "Purchase Date" },
   { key: "purchasePrice", label: "Purchase Price" },
   { key: "vendor", label: "Vendor" },
-  { key: "warranty", label: "Warranty" },
+  { key: "warranty", label: "Warranty Expired" },
 ];
 
 const fieldPlaceholders = {
@@ -58,6 +58,18 @@ const renderHoverContent = (value) => {
       {preview}
     </span>
   );
+};
+
+const getWarrantyExpiryDate = (purchaseDate, warranty) => {
+  const years = parseWarrantyYears(warranty);
+  if (!purchaseDate || !Number.isFinite(years)) return "";
+
+  const startDate = new Date(purchaseDate);
+  if (Number.isNaN(startDate.getTime())) return "";
+
+  const expiryDate = new Date(startDate);
+  expiryDate.setFullYear(expiryDate.getFullYear() + years);
+  return formatDisplayDate(expiryDate);
 };
 
 const getCellValue = (row, labels) => {
@@ -660,10 +672,15 @@ const InventoryMasterPage = () => {
                       <td>{record.purchasePrice}</td>
                       <td className="vendor-column">{renderHoverContent(record.vendor)}</td>
                       <td
-                        title={record.warranty ? `Warranty: ${record.warranty}` : undefined}
+                        title={
+                          getDaysLeftFromWarranty(record.purchaseDate, record.warranty) ||
+                          undefined
+                        }
+                        className="warranty-column"
                       >
-                        {getDaysLeftFromWarranty(record.purchaseDate, record.warranty) ||
-                          record.warranty}
+                        {getWarrantyExpiryDate(record.purchaseDate, record.warranty) ||
+                          record.warranty ||
+                          "N/A"}
                       </td>
                       <td>
                         <div className="master-actions">

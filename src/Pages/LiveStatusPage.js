@@ -243,7 +243,7 @@ const LiveStatusPage = () => {
           </div>
         </div>
 
-        <div className="enterprise-card live-filter-card">
+        {/* <div className="enterprise-card live-filter-card">
           <div>
             <label className="filter-label">Search</label>
             <input
@@ -286,7 +286,7 @@ const LiveStatusPage = () => {
               <option value="100">100</option>
             </select>
           </div>
-        </div>
+        </div> */}
 
         <div className="enterprise-card live-breakdown-card">
           <div className="live-breakdown-header">
@@ -322,7 +322,7 @@ const LiveStatusPage = () => {
                 </tr>
                 <tr>
                   <td>
-                    <strong>C-DAC (On Loan)</strong>
+                    <strong>C-DAC (Testing)</strong>
                   </td>
                   <td>
                     <strong>{getRowCount(locationStatusBreakdown.cdacLoan)}</strong>
@@ -430,6 +430,51 @@ const LiveStatusPage = () => {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+                <div className="enterprise-card live-filter-card">
+          <div>
+            <label className="filter-label">Search</label>
+            <input
+              className="form-control"
+              value={search}
+              placeholder="Serial, city, location, status..."
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+          <div>
+            <label className="filter-label">Current Status</label>
+            <select
+              className="form-select"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="">All Status</option>
+              <option value="Serviceable">Serviceable</option>
+              <option value="Un-serviceable">Un-Serviceable</option>
+              <option value="Police Custody">Police Custody</option>
+              <option value="Not Traced">Not Traced</option>
+            </select>
+          </div>
+          <div>
+            <label className="filter-label">Rows Per Page</label>
+            <select
+              className="form-select"
+              value={recordsPerPage}
+              onChange={handlePageSizeChange}
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
           </div>
         </div>
 

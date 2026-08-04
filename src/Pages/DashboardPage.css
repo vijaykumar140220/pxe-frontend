@@ -484,22 +484,35 @@
 }
 
 .intelligence-card span {
+  white-space: nowrap;
   color: #64748b;
-  font-size: 0.61rem;
+  font-size: 0.58rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 .intelligence-card strong {
   margin-top: 6px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #081a3a;
   font-size: 0.88rem;
   font-weight: 900;
 }
 .intelligence-card small {
+  white-space: nowrap;
   margin-top: 3px;
   color: #94a3b8;
-  font-size: 0.61rem;
+  font-size: 0.58rem;
+}
+
+.breakdown-item__details span,
+.breakdown-item__details strong {
+  white-space: nowrap;
+}
+
+.breakdown-item__details strong {
+  font-size: 0.82rem;
 }
 .intelligence-card--blue > i {
   color: #1e40af;
